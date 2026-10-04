@@ -135,7 +135,7 @@
 
                     <!-- Quick Demo Shortcut -->
                     <div style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-muted);">
-                        Demo Patient: <a href="{{ url_for('doctor_patient_view', medi_id='MED-DEMO2026') }}" style="color: var(--secondary); font-weight: 600; text-decoration: underline;">Load Alex Sharma (MED-DEMO2026)</a>
+                        Demo Patient: <a href="{{ url_for('doctor_patient_confirm', medi_id='MED-DEMO2026') }}" style="color: var(--secondary); font-weight: 600; text-decoration: underline;">Load Alex Sharma (MED-DEMO2026)</a>
                     </div>
                 </div>
 
@@ -146,8 +146,23 @@
                         Scan Patient QR
                     </h3>
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.85rem;">
-                        Scan the patient's physical or digital SahayID QR code with an external camera or barcode scanner.
+                        Scan the patient's SahayID QR code or paste the scanned QR access URL.
                     </p>
+
+                    <form action="{{ url_for('doctor_patient_search') }}" method="POST" style="margin-bottom: 0.75rem;">
+                        <div class="doctor-search-input-group">
+                            <input 
+                                type="text" 
+                                name="sahay_id" 
+                                class="form-input doctor-search-input" 
+                                placeholder="Paste QR URL or SahayID Number"
+                                required
+                            >
+                            <button type="submit" class="btn btn-primary" style="background-color: var(--secondary);">
+                                Scan / Look Up
+                            </button>
+                        </div>
+                    </form>
 
                     <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                         <a href="{{ url_for('emergency_access', medi_id='MED-DEMO2026') }}" class="btn btn-secondary" style="flex: 1; text-align: center;">
@@ -157,7 +172,7 @@
                                 <rect x="14" y="14" width="7" height="7"></rect>
                                 <rect x="3" y="14" width="7" height="7"></rect>
                             </svg>
-                            Simulate Scanning Demo QR
+                            Simulate Scanning Demo QR (Gateway)
                         </a>
                     </div>
                     <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.5rem;">
@@ -176,7 +191,7 @@
                             <circle cx="12" cy="12" r="10"></circle>
                             <polyline points="12 6 12 12 16 14"></polyline>
                         </svg>
-                        Recent Patient Access History
+                        Recent Patient Access
                     </h2>
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
                         Log of medical records accessed under your verified credentials.

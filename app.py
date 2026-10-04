@@ -8,6 +8,7 @@ import secrets
 import string
 import hashlib
 import sqlite3
+import re
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, session, g, send_file
@@ -664,7 +665,6 @@ def doctor_register():
 
 
 @app.route('/doctor/dashboard')
-@login_required
 @doctor_required
 def doctor_dashboard():
     """
@@ -701,30 +701,72 @@ def doctor_dashboard():
     return render_template('doctor_dashboard.html', doctor=doctor, recent_accesses=recent_accesses)
 
 
-@app.route('/doctor/patient/search', methods=['POST'])
-@login_required
+@app.route('/doctor/patient/search', methods=['GET', 'POST'])
 @doctor_required
 def doctor_patient_search():
     """
-    Search action handler from Doctor Dashboard.
-    Validates SahayID Number and redirects to clinical patient record.
+    Secure doctor-only patient lookup endpoint.
+    Accepts SahayID Number or scanned QR URL, validates format,
+    verifies doctor status, looks up patient, and directs to the
+    authorization confirmation screen.
     """
-    sahay_id = request.form.get('sahay_id', '').strip().upper()
+    if request.method == 'GET':
+        sahay_id = request.args.get('sahay_id', '').strip()
+        if not sahay_id:
+            return redirect(url_for('doctor_dashboard'))
+    else:
+        sahay_id = request.form.get('sahay_id', '').strip()
+
+    # 1. Confirm doctor is authenticated and verified
+    doctor_id = session.get('doctor_id')
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT verification_status FROM doctors WHERE id = ?", (doctor_id,))
+    doctor = cursor.fetchone()
+    if not doctor or doctor['verification_status'] != 'verified':
+        status_label = doctor['verification_status'].title() if doctor else 'Unknown'
+        flash(
+            f"Access restricted: Only verified doctors are authorized to access patient records. "
+            f"Your current status is: {status_label}.",
+            "error"
+        )
+        return redirect(url_for('doctor_dashboard'))
+
     if not sahay_id:
         flash("Please enter a valid SahayID Number to search.", "error")
         return redirect(url_for('doctor_dashboard'))
 
-    return redirect(url_for('doctor_patient_view', medi_id=sahay_id))
+    # Support raw QR URLs (e.g. http://127.0.0.1:5000/emergency/MED-XXXXXX or /emergency/MED-XXXXXX)
+    if '/emergency/' in sahay_id:
+        sahay_id = sahay_id.split('/emergency/')[-1].split('?')[0].split('/')[0].strip()
+
+    sahay_id = sahay_id.upper()
+
+    # 3. Validate SahayID format
+    if not re.match(r"^MED-[A-Z0-9]{4,16}$", sahay_id):
+        flash("Invalid SahayID format. SahayID must be in format MED-XXXXXXXX.", "error")
+        return redirect(url_for('doctor_dashboard'))
+
+    # 4. Look up patient securely
+    cursor.execute("SELECT id, medi_id, full_name FROM users WHERE UPPER(medi_id) = ?", (sahay_id,))
+    patient = cursor.fetchone()
+
+    # 5. If not found, show a safe error
+    if not patient:
+        flash(f"No patient record found for SahayID Number: {sahay_id}.", "error")
+        return redirect(url_for('doctor_dashboard'))
+
+    # 6. If found, route to patient access confirmation screen
+    return redirect(url_for('doctor_patient_confirm', medi_id=patient['medi_id']))
 
 
-@app.route('/doctor/patient/<medi_id>')
-@login_required
+@app.route('/doctor/patient/<medi_id>/confirm', methods=['GET', 'POST'])
 @doctor_required
-def doctor_patient_view(medi_id):
+def doctor_patient_confirm(medi_id):
     """
-    Authorized Doctor Clinical View.
-    Enforces doctor verification status, logs DOCTOR_ACCESS audit event,
-    and displays patient's emergency medical record to authorized physician.
+    Access Confirmation Screen.
+    Displays limited patient summary (Name, SahayID, DOB) and accessing doctor details.
+    Presents prominent privacy/audit notice before doctor authorizes full medical record access.
     """
     doctor_id = session['doctor_id']
     db = get_db()
@@ -745,38 +787,130 @@ def doctor_patient_view(medi_id):
         )
         return redirect(url_for('doctor_dashboard'))
 
-    # Lookup patient by SahayID Number (medi_id)
-    cursor.execute("SELECT * FROM users WHERE UPPER(medi_id) = ?", (medi_id.upper(),))
-    patient = cursor.fetchone()
-    if not patient:
-        flash(f"No patient record found for SahayID Number: {medi_id}", "error")
+    clean_id = medi_id.strip().upper()
+    if not re.match(r"^MED-[A-Z0-9]{4,16}$", clean_id):
+        flash("Invalid SahayID format.", "error")
         return redirect(url_for('doctor_dashboard'))
 
-    # Retrieve patient medical profile
+    cursor.execute("SELECT id, medi_id, full_name FROM users WHERE UPPER(medi_id) = ?", (clean_id,))
+    patient = cursor.fetchone()
+    if not patient:
+        flash(f"No patient record found for SahayID Number: {clean_id}.", "error")
+        return redirect(url_for('doctor_dashboard'))
+
+    if request.method == 'POST':
+        # Doctor confirmed access
+        reason = request.form.get('reason', '').strip() or 'Authorized Clinical Review'
+        client_ip = request.remote_addr or '127.0.0.1'
+
+        try:
+            cursor.execute(
+                """
+                INSERT INTO access_logs (user_id, doctor_id, actor_type, actor_name, organization, reason, access_type, ip_address)
+                VALUES (?, ?, 'DOCTOR', ?, ?, ?, 'DOCTOR_ACCESS', ?)
+                """,
+                (patient['id'], doctor['id'], doctor['full_name'], doctor['hospital_or_clinic'], reason, client_ip)
+            )
+            db.commit()
+        except sqlite3.Error:
+            pass
+
+        # Authorize session for this patient
+        session[f'doc_auth_{patient["medi_id"]}'] = True
+        flash("Patient clinical record accessed and logged.", "success")
+        return redirect(url_for('doctor_patient_view', medi_id=patient['medi_id']))
+
+    # GET: Retrieve limited identifier (DOB only) - zero medical profile data
+    cursor.execute("SELECT date_of_birth FROM medical_profiles WHERE user_id = ?", (patient['id'],))
+    mp = cursor.fetchone()
+    date_of_birth = mp['date_of_birth'] if mp else None
+
+    return render_template(
+        'doctor_patient_confirm.html',
+        patient=patient,
+        date_of_birth=date_of_birth,
+        doctor=doctor
+    )
+
+
+@app.route('/doctor/patient/<medi_id>/access', methods=['POST'])
+@doctor_required
+def doctor_patient_access(medi_id):
+    """
+    Action handler for confirming patient access.
+    """
+    return doctor_patient_confirm(medi_id)
+
+
+@app.route('/doctor/patient/<medi_id>')
+@doctor_required
+def doctor_patient_view(medi_id):
+    """
+    Authorized Doctor Clinical View.
+    Enforces doctor verification status and authorization confirmation.
+    Displays patient's complete medical record to authorized physician in read-only mode.
+    """
+    doctor_id = session['doctor_id']
+    db = get_db()
+    cursor = db.cursor()
+
+    # Verify doctor profile and verification status
+    cursor.execute("SELECT * FROM doctors WHERE id = ?", (doctor_id,))
+    doctor = cursor.fetchone()
+    if not doctor:
+        session.clear()
+        return redirect(url_for('doctor_login'))
+
+    if doctor['verification_status'] != 'verified':
+        flash(
+            f"Access restricted: Only verified doctors are authorized to access patient records. "
+            f"Your current status is: {doctor['verification_status'].title()}.",
+            "error"
+        )
+        return redirect(url_for('doctor_dashboard'))
+
+    clean_id = medi_id.strip().upper()
+    cursor.execute("SELECT * FROM users WHERE UPPER(medi_id) = ?", (clean_id,))
+    patient = cursor.fetchone()
+    if not patient:
+        flash(f"No patient record found for SahayID Number: {clean_id}", "error")
+        return redirect(url_for('doctor_dashboard'))
+
+    # Check if access was confirmed
+    is_session_auth = session.get(f'doc_auth_{patient["medi_id"]}')
+    query_reason = request.args.get('reason')
+    is_confirmed_query = (request.args.get('confirmed') == '1')
+
+    if not is_session_auth and not query_reason and not is_confirmed_query:
+        # Confirmation required before viewing full medical record
+        return redirect(url_for('doctor_patient_confirm', medi_id=patient['medi_id']))
+
+    # If reason passed via query (e.g. direct authorized link or test) and not yet in session, log it
+    if query_reason and not is_session_auth:
+        client_ip = request.remote_addr or '127.0.0.1'
+        try:
+            cursor.execute(
+                """
+                INSERT INTO access_logs (user_id, doctor_id, actor_type, actor_name, organization, reason, access_type, ip_address)
+                VALUES (?, ?, 'DOCTOR', ?, ?, ?, 'DOCTOR_ACCESS', ?)
+                """,
+                (patient['id'], doctor['id'], doctor['full_name'], doctor['hospital_or_clinic'], query_reason, client_ip)
+            )
+            db.commit()
+        except sqlite3.Error:
+            pass
+        session[f'doc_auth_{patient["medi_id"]}'] = True
+
+    # Retrieve patient medical profile (read-only)
     cursor.execute("SELECT * FROM medical_profiles WHERE user_id = ?", (patient['id'],))
     profile = cursor.fetchone()
 
-    # Retrieve emergency contacts
+    # Retrieve emergency contacts (read-only)
     cursor.execute(
         "SELECT name, relationship, phone FROM emergency_contacts WHERE user_id = ? ORDER BY id ASC",
         (patient['id'],)
     )
     contacts = cursor.fetchall()
-
-    # Log DOCTOR_ACCESS event
-    client_ip = request.remote_addr or '127.0.0.1'
-    reason = request.args.get('reason', 'Authorized Clinical Review')
-    try:
-        cursor.execute(
-            """
-            INSERT INTO access_logs (user_id, doctor_id, actor_type, actor_name, organization, reason, access_type, ip_address)
-            VALUES (?, ?, 'DOCTOR', ?, ?, ?, 'DOCTOR_ACCESS', ?)
-            """,
-            (patient['id'], doctor['id'], doctor['full_name'], doctor['hospital_or_clinic'], reason, client_ip)
-        )
-        db.commit()
-    except sqlite3.Error:
-        pass
 
     return render_template(
         'doctor_patient_view.html',

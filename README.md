@@ -327,8 +327,9 @@ The database seeding script creates two fully configured accounts ready for live
    - Open another browser tab and navigate to `/doctor/login`.
    - Sign in as `doctor@sahayid.demo` / `DemoDoctor123!`.
    - Inspect the Doctor Dashboard displaying Dr. Arjun Mehta's verified badge and recent access log.
-   - Under **Access Patient Record**, enter SahayID Number `MED-DEMO2026` and submit.
-   - Review the complete clinical patient record, allergies, conditions, and next-of-kin contacts.
+   - Under **Access Patient Record**, enter SahayID Number `MED-DEMO2026` (or scan/paste the QR link).
+   - Review the **Patient Found** confirmation screen displaying limited demographics, doctor identity, and the prominent privacy/audit message.
+   - Click **Access Medical Record** to view the full read-only clinical record (allergies, conditions, medications, next-of-kin contacts).
 4. **Audit Trail Verification**:
    - Switch back to the Patient Dashboard tab and refresh.
    - Observe both access events in the **Information Access History** table:
@@ -349,9 +350,10 @@ python test_part4.py
 python test_part5.py
 python test_final.py
 python test_roles.py
+python test_doctor_patient_access.py
 ```
 
-### Test Coverage Summary (74 Total Checks)
+### Test Coverage Summary (92 Total Checks)
 
 | Test Suite | Focus Area | Checks |
 |---|---|---|
@@ -361,6 +363,8 @@ python test_roles.py
 | `test_part5.py` | Emergency verification gateway, ephemeral tokens, SHA-256 token hashing, audit logs. | 13 / 13 Passing |
 | `test_final.py` | Full end-to-end integration, 7-step landing page, security headers, branded error templates. | 18 / 18 Passing |
 | `test_roles.py` | Doctor role authentication, session isolation, doctor verification gate, DOCTOR_ACCESS audit logs. | 15 / 15 Passing |
+| `test_doctor_patient_access.py` | Secure lookup, invalid ID handling, confirmation gate, QR routing, and recent access isolation. | 18 / 18 Passing |
+| **Total** | | **92 / 92 Passing** |
 
 ---
 

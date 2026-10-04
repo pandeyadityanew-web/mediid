@@ -77,10 +77,10 @@
                             <strong>{{ doctor_name }}</strong>
                         </div>
                         <p style="font-size: 0.85rem; color: #166534; margin-bottom: 1rem;">
-                            You are signed in with a doctor account. You may proceed directly to the full clinical patient record under authorized medical review.
+                            You are signed in with a doctor account. Proceed to confirm patient access under authorized clinical review.
                         </p>
-                        <a href="{{ url_for('doctor_patient_view', medi_id=medi_id) }}" class="btn btn-primary btn-block" style="background-color: var(--secondary);">
-                            Authorized Doctor Access &rarr; View Patient Record
+                        <a href="{{ url_for('doctor_patient_confirm', medi_id=medi_id) }}" class="btn btn-primary btn-block" style="background-color: var(--secondary);">
+                            Authorized Doctor Access &rarr; Confirm Patient Access
                         </a>
                     </div>
                 {% endif %}
@@ -96,7 +96,7 @@
                     </a>
 
                     {% if not is_doctor %}
-                        <a href="{{ url_for('doctor_login', next=url_for('doctor_patient_view', medi_id=medi_id)) }}" class="btn btn-secondary btn-block" style="color: var(--secondary); border-color: var(--secondary);">
+                        <a href="{{ url_for('doctor_login', next=url_for('doctor_patient_confirm', medi_id=medi_id)) }}" class="btn btn-secondary btn-block" style="color: var(--secondary); border-color: var(--secondary);">
                             Registered Doctor? Sign In for Clinical Access
                         </a>
                     {% endif %}
