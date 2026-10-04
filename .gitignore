@@ -1,0 +1,27 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Environment secrets
+.env
+.env.*
+
+# SQLite database files
+*.db
+*.sqlite3
+
+# Generated QR code images (auto-generated at runtime)
+static/generated_qr/*.png
+!static/generated_qr/.gitkeep
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

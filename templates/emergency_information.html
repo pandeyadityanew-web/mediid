@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Clinical Record - MediID</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Top Emergency Header -->
+    <header class="navbar" style="border-bottom: 2px solid var(--emergency);">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="nav-brand">
+                <span class="brand-icon" style="background: var(--emergency);">+</span>
+                <span>MediID Emergency Portal</span>
+            </a>
+            <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Active Clinical Session</span>
+        </div>
+    </header>
+
+    <main class="main-wrapper">
+        {% if expired or error %}
+            <!-- Expired / Invalid State -->
+            <div class="auth-container" style="max-width: 520px; margin-top: 3rem;">
+                <div class="auth-card" style="text-align: center; border-top: 4px solid var(--emergency);">
+                    <div style="width: 56px; height: 56px; border-radius: 50%; background-color: var(--emergency-light); color: var(--emergency); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                    </div>
+
+                    <h1 class="auth-title">{{ error or "Emergency access has expired." }}</h1>
+                    <p class="auth-subtitle" style="margin-bottom: 1.75rem;">
+                        For patient privacy and clinical record security, temporary emergency tokens expire automatically after 10 minutes.
+                    </p>
+
+                    {% if medi_id %}
+                        <a href="{{ url_for('emergency_verify', medi_id=medi_id) }}" class="btn btn-primary btn-block" style="background-color: var(--emergency); margin-bottom: 0.75rem;">
+                            Re-verify Emergency Access
+                        </a>
+                    {% endif %}
+
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary btn-block">
+                        Return to MediID
+                    </a>
+                </div>
+            </div>
+
+        {% else %}
+            <!-- Active Emergency Medical Information -->
+            <section class="emergency-live-banner">
+                <div class="emergency-title-box">
+                    <span class="pulse-dot"></span>
+                    <div>
+                        <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; color: var(--emergency);">
+                            Official Emergency Record
+                        </div>
+                        <h1 style="font-size: 1.6rem; font-weight: 800; color: #881337;">
+                            Emergency Access — Temporary
+                        </h1>
+                    </div>
+                </div>
+
+                <div class="countdown-box" id="timerBox">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Session Expires in: <strong id="countdownTimer">10:00</strong></span>
+                </div>
+            </section>
+
+            <!-- Patient Overview & Blood Type Banner -->
+            <div class="patient-banner" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border-left: 6px solid var(--primary);">
+                <div class="patient-info">
+                    <h1>{{ patient['full_name'] }}</h1>
+                    <div class="patient-meta" style="margin-top: 0.5rem;">
+                        <span class="medi-id-chip">{{ patient['medi_id'] }}</span>
+                        {% if patient['date_of_birth'] %}
+                            <span>DOB: <strong>{{ patient['date_of_birth'] }}</strong></span>
+                        {% endif %}
+                        {% if patient['gender'] %}
+                            <span>Gender: <strong>{{ patient['gender'] }}</strong></span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="text-align: right;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted); display: block; text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Blood Group</span>
+                    {% if patient['blood_group'] %}
+                        <span class="badge-blood" style="font-size: 1.35rem; padding: 0.35rem 1rem;">
+                            {{ patient['blood_group'] }}
+                        </span>
+                    {% else %}
+                        <span class="badge-pill">Unknown</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Critical Medical Essentials Grid -->
+            <div class="dashboard-grid" style="margin-bottom: 2rem;">
+                <!-- Allergies -->
+                <div class="dashboard-card" style="border-top: 3px solid var(--emergency);">
+                    <div class="card-top">
+                        <div class="card-title-bar">
+                            <h2 class="card-title" style="color: var(--emergency);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                Allergies & Warnings
+                            </h2>
+                            <span class="badge-pill" style="background-color: var(--emergency-light); color: var(--emergency); font-weight: 700;">Critical</span>
+                        </div>
+
+                        <div class="clinical-alert-box">
+                            <strong style="color: var(--emergency); display: block; margin-bottom: 0.25rem;">Known Drug & Food Triggers:</strong>
+                            <p style="font-size: 1rem; color: #4c0519; font-weight: 600;">
+                                {{ medical['allergies'] if medical and medical['allergies'] else 'No allergies recorded' }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medical Conditions -->
+                <div class="dashboard-card" style="border-top: 3px solid var(--primary);">
+                    <div class="card-top">
+                        <div class="card-title-bar">
+                            <h2 class="card-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                                </svg>
+                                Chronic Conditions
+                            </h2>
+                        </div>
+                        <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
+                            {{ medical['medical_conditions'] if medical and medical['medical_conditions'] else 'No chronic conditions recorded' }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Current Medications -->
+                <div class="dashboard-card" style="border-top: 3px solid var(--secondary);">
+                    <div class="card-top">
+                        <div class="card-title-bar">
+                            <h2 class="card-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7z"></path>
+                                    <path d="M8.5 8.5l7 7"></path>
+                                </svg>
+                                Current Medications
+                            </h2>
+                        </div>
+                        <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
+                            {{ medical['current_medications'] if medical and medical['current_medications'] else 'No active prescriptions recorded' }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Previous Surgeries -->
+                <div class="dashboard-card">
+                    <div class="card-top">
+                        <div class="card-title-bar">
+                            <h2 class="card-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                                Surgical History
+                            </h2>
+                        </div>
+                        <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
+                            {{ medical['previous_surgeries'] if medical and medical['previous_surgeries'] else 'No surgical history recorded' }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emergency Contacts (Direct Call) -->
+            <div class="card-title-bar" style="margin-top: 2rem;">
+                <h2 class="card-title">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Emergency Contacts (Next of Kin)
+                </h2>
+                <span class="badge-pill">{{ contacts|length }} Contact(s)</span>
+            </div>
+
+            {% if contacts %}
+                <div class="contacts-grid">
+                    {% for contact in contacts %}
+                        <div class="contact-item-card" style="border-left: 4px solid var(--secondary);">
+                            <div>
+                                <h3 class="contact-name">{{ contact['name'] }}</h3>
+                                <span class="contact-rel-badge">{{ contact['relationship'] or 'Emergency Contact' }}</span>
+                                <div class="contact-phone-row" style="margin-top: 0.5rem;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                    </svg>
+                                    <a href="tel:{{ contact['phone'] }}" style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">
+                                        {{ contact['phone'] }}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>No emergency contacts registered for this patient.</p>
+                </div>
+            {% endif %}
+
+            <!-- Audit & Responder Metadata Box -->
+            <div class="audit-meta-card">
+                <strong style="color: var(--text-main); font-size: 0.95rem;">Emergency Access Authorization Record</strong>
+                <div class="audit-meta-grid">
+                    <div>
+                        <span style="display: block; font-size: 0.775rem; text-transform: uppercase;">Responder Name</span>
+                        <strong style="color: var(--text-main);">{{ access['responder_name'] }}</strong>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.775rem; text-transform: uppercase;">Organization</span>
+                        <strong style="color: var(--text-main);">{{ access['organization'] or 'Independent Responder' }}</strong>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.775rem; text-transform: uppercase;">Reason</span>
+                        <strong style="color: var(--text-main);">{{ access['reason'] }}</strong>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.775rem; text-transform: uppercase;">Access Time</span>
+                        <strong style="color: var(--text-main);">{{ access['created_at'] }}</strong>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.775rem; text-transform: uppercase;">Expiry Time</span>
+                        <strong style="color: var(--emergency);">{{ access['expires_at'] }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client-side Timer Script -->
+            <script>
+                (function() {
+                    let remainingSeconds = {{ remaining_seconds or 600 }};
+                    const timerDisplay = document.getElementById('countdownTimer');
+
+                    function updateTimer() {
+                        if (remainingSeconds <= 0) {
+                            timerDisplay.textContent = 'Expired';
+                            window.location.reload();
+                            return;
+                        }
+                        const mins = Math.floor(remainingSeconds / 60);
+                        const secs = remainingSeconds % 60;
+                        timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                        remainingSeconds--;
+                    }
+
+                    updateTimer();
+                    setInterval(updateTimer, 1000);
+                })();
+            </script>
+        {% endif %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">MediID Emergency Access System © 2026</div>
+            <div class="footer-note">Confidential First Responder Clinical Gateway</div>
+        </div>
+    </footer>
+</body>
+</html>

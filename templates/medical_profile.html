@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Profile - MediID</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Authenticated Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('dashboard') }}" class="nav-brand">
+                <span class="brand-icon">+</span>
+                <span>MediID</span>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
+            <nav>
+                <ul class="nav-menu" id="navMenu">
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
+                    <li><a href="{{ url_for('medical_profile') }}" class="nav-link active">Medical Profile</a></li>
+                    <li><a href="{{ url_for('emergency_contacts') }}" class="nav-link">Emergency Contacts</a></li>
+                    <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+        <!-- Flash Message Alerts -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="profile-form-container">
+            <div class="auth-card" style="max-width: 100%;">
+                <div class="card-title-bar">
+                    <div>
+                        <h1 class="card-title">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            Personal Medical Profile
+                        </h1>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
+                            Keep your critical clinical information accurate. This data will populate your emergency profile.
+                        </p>
+                    </div>
+                    <span class="medi-id-chip">{{ session.get('medi_id') }}</span>
+                </div>
+
+                <form action="{{ url_for('medical_profile') }}" method="POST">
+                    <!-- Section: Core Demographics -->
+                    <h2 class="form-section-heading" style="margin-top: 0.5rem;">Vitals & Demographics</h2>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="date_of_birth" class="form-label">Date of Birth</label>
+                            <input 
+                                type="date" 
+                                id="date_of_birth" 
+                                name="date_of_birth" 
+                                class="form-input" 
+                                value="{{ profile['date_of_birth'] if profile and profile['date_of_birth'] else '' }}"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="gender" class="form-label">Gender</label>
+                            <select id="gender" name="gender" class="form-input">
+                                <option value="">-- Select Gender --</option>
+                                <option value="Male" {% if profile and profile['gender'] == 'Male' %}selected{% endif %}>Male</option>
+                                <option value="Female" {% if profile and profile['gender'] == 'Female' %}selected{% endif %}>Female</option>
+                                <option value="Non-Binary" {% if profile and profile['gender'] == 'Non-Binary' %}selected{% endif %}>Non-Binary</option>
+                                <option value="Other" {% if profile and profile['gender'] == 'Other' %}selected{% endif %}>Other</option>
+                                <option value="Prefer not to say" {% if profile and profile['gender'] == 'Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="blood_group" class="form-label">Blood Group</label>
+                        <select id="blood_group" name="blood_group" class="form-input">
+                            <option value="">-- Select Blood Group --</option>
+                            <option value="A+" {% if profile and profile['blood_group'] == 'A+' %}selected{% endif %}>A Positive (A+)</option>
+                            <option value="A-" {% if profile and profile['blood_group'] == 'A-' %}selected{% endif %}>A Negative (A-)</option>
+                            <option value="B+" {% if profile and profile['blood_group'] == 'B+' %}selected{% endif %}>B Positive (B+)</option>
+                            <option value="B-" {% if profile and profile['blood_group'] == 'B-' %}selected{% endif %}>B Negative (B-)</option>
+                            <option value="AB+" {% if profile and profile['blood_group'] == 'AB+' %}selected{% endif %}>AB Positive (AB+)</option>
+                            <option value="AB-" {% if profile and profile['blood_group'] == 'AB-' %}selected{% endif %}>AB Negative (AB-)</option>
+                            <option value="O+" {% if profile and profile['blood_group'] == 'O+' %}selected{% endif %}>O Positive (O+)</option>
+                            <option value="O-" {% if profile and profile['blood_group'] == 'O-' %}selected{% endif %}>O Negative (O-)</option>
+                            <option value="Unknown" {% if profile and profile['blood_group'] == 'Unknown' %}selected{% endif %}>Unknown</option>
+                        </select>
+                        <span class="form-hint">Critical for emergency blood transfusions.</span>
+                    </div>
+
+                    <!-- Section: Clinical Criticals -->
+                    <h2 class="form-section-heading">Clinical Essentials</h2>
+                    
+                    <div class="form-group">
+                        <label for="allergies" class="form-label">Allergies (Drugs, Food, Environmental)</label>
+                        <textarea 
+                            id="allergies" 
+                            name="allergies" 
+                            class="form-textarea" 
+                            placeholder="e.g. Penicillin (severe anaphylaxis), Peanuts, Latex"
+                        >{{ profile['allergies'] if profile and profile['allergies'] else '' }}</textarea>
+                        <span class="form-hint">List any known allergic triggers and reactions.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="medical_conditions" class="form-label">Medical Conditions & Chronic Illnesses</label>
+                        <textarea 
+                            id="medical_conditions" 
+                            name="medical_conditions" 
+                            class="form-textarea" 
+                            placeholder="e.g. Type 1 Diabetes, Asthma, Hypertension"
+                        >{{ profile['medical_conditions'] if profile and profile['medical_conditions'] else '' }}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="current_medications" class="form-label">Current Medications & Dosages</label>
+                        <textarea 
+                            id="current_medications" 
+                            name="current_medications" 
+                            class="form-textarea" 
+                            placeholder="e.g. Insulin glargine 20 units nightly, Albuterol inhaler PRN"
+                        >{{ profile['current_medications'] if profile and profile['current_medications'] else '' }}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="previous_surgeries" class="form-label">Previous Surgeries & Medical History</label>
+                        <textarea 
+                            id="previous_surgeries" 
+                            name="previous_surgeries" 
+                            class="form-textarea" 
+                            placeholder="e.g. Appendectomy (2021), Left knee ACL repair (2018)"
+                        >{{ profile['previous_surgeries'] if profile and profile['previous_surgeries'] else '' }}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="additional_notes" class="form-label">Additional Emergency Notes (Optional)</label>
+                        <textarea 
+                            id="additional_notes" 
+                            name="additional_notes" 
+                            class="form-textarea" 
+                            placeholder="e.g. Uses cochlear implant, organ donor preference, pacemaker installed"
+                        >{{ profile['additional_notes'] if profile and profile['additional_notes'] else '' }}</textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;">
+                        <button type="submit" class="btn btn-primary" style="min-width: 180px;">Save Medical Profile</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel & Back to Dashboard</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">MediID © 2026</div>
+            <div class="footer-note">Confidential & Patient-Controlled Medical Identity</div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

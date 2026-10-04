@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Contacts - MediID</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Authenticated Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('dashboard') }}" class="nav-brand">
+                <span class="brand-icon">+</span>
+                <span>MediID</span>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
+            <nav>
+                <ul class="nav-menu" id="navMenu">
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
+                    <li><a href="{{ url_for('medical_profile') }}" class="nav-link">Medical Profile</a></li>
+                    <li><a href="{{ url_for('emergency_contacts') }}" class="nav-link active">Emergency Contacts</a></li>
+                    <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+        <!-- Flash Message Alerts -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="profile-form-container">
+            <!-- Header -->
+            <div class="card-title-bar" style="margin-bottom: 2rem;">
+                <div>
+                    <h1 class="card-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        Emergency Contacts
+                    </h1>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
+                        Individuals who can be contacted immediately by paramedics or healthcare providers in an emergency.
+                    </p>
+                </div>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">Back to Dashboard</a>
+            </div>
+
+            <!-- Existing Contacts List -->
+            <h2 class="form-section-heading" style="margin-top: 0;">Registered Contacts ({{ contacts|length }})</h2>
+
+            {% if contacts %}
+                <div class="contacts-grid">
+                    {% for contact in contacts %}
+                        <div class="contact-item-card">
+                            <div>
+                                <h3 class="contact-name">{{ contact['name'] }}</h3>
+                                <span class="contact-rel-badge">{{ contact['relationship'] or 'Emergency Contact' }}</span>
+                                <div class="contact-phone-row">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                    </svg>
+                                    <span>{{ contact['phone'] }}</span>
+                                </div>
+                            </div>
+
+                            <form action="{{ url_for('delete_emergency_contact', contact_id=contact['id']) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove {{ contact['name'] }} from your emergency contacts?');">
+                                <button type="submit" class="btn-danger btn-block">Remove Contact</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>No emergency contacts added yet. Having at least one contact ensures your next of kin is notified in urgent situations.</p>
+                </div>
+            {% endif %}
+
+            <!-- Add New Contact Form Card -->
+            <div class="auth-card" style="margin-top: 2rem; max-width: 100%;">
+                <h2 class="card-title" style="margin-bottom: 1.25rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add New Emergency Contact
+                </h2>
+
+                <form action="{{ url_for('emergency_contacts') }}" method="POST">
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="name" class="form-label">Contact Full Name *</label>
+                            <input 
+                                type="text" 
+                                id="name" 
+                                name="name" 
+                                class="form-input" 
+                                placeholder="e.g. Sarah Jenkins" 
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="relationship" class="form-label">Relationship</label>
+                            <select id="relationship" name="relationship" class="form-input">
+                                <option value="Spouse">Spouse</option>
+                                <option value="Parent">Parent</option>
+                                <option value="Child">Child</option>
+                                <option value="Sibling">Sibling</option>
+                                <option value="Guardian">Guardian</option>
+                                <option value="Partner">Partner</option>
+                                <option value="Close Friend">Close Friend</option>
+                                <option value="Primary Physician">Primary Physician</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Contact Phone Number *</label>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            name="phone" 
+                            class="form-input" 
+                            placeholder="+1 (555) 234-5678" 
+                            required
+                        >
+                        <span class="form-hint">Direct telephone number with area code.</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Add Emergency Contact</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">MediID © 2026</div>
+            <div class="footer-note">Confidential & Patient-Controlled Medical Identity</div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

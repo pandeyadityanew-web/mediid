@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Verification - MediID {{ medi_id }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Top Emergency Header -->
+    <header class="navbar" style="border-bottom: 2px solid var(--emergency);">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="nav-brand">
+                <span class="brand-icon" style="background: var(--emergency);">+</span>
+                <span>MediID Emergency Portal</span>
+            </a>
+            <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Verification Required</span>
+        </div>
+    </header>
+
+    <main class="main-wrapper">
+        <!-- Flash Message Alerts -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="auth-container" style="max-width: 580px;">
+            <div class="auth-card" style="border-top: 4px solid var(--emergency);">
+                <div class="auth-header">
+                    <div style="width: 50px; height: 50px; border-radius: 50%; background-color: var(--emergency-light); color: var(--emergency); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+
+                    <h1 class="auth-title">Emergency Medical Access</h1>
+                    <p class="auth-subtitle">Patient MediID: <strong style="font-family: monospace; color: var(--primary);">{{ medi_id }}</strong></p>
+                </div>
+
+                <div class="status-pill" style="border-left: 4px solid var(--emergency); background-color: #fff1f2; margin-bottom: 1.5rem;">
+                    <span class="status-indicator" style="background-color: var(--emergency);"></span>
+                    <span style="font-size: 0.85rem; color: #9f1239;">
+                        This access is intended for emergency situations. Access to medical information is logged for patient safety and privacy.
+                    </span>
+                </div>
+
+                <form action="{{ url_for('emergency_verify', medi_id=medi_id) }}" method="POST">
+                    <div class="form-group">
+                        <label for="responder_name" class="form-label">Responder Full Name *</label>
+                        <input 
+                            type="text" 
+                            id="responder_name" 
+                            name="responder_name" 
+                            class="form-input" 
+                            placeholder="e.g. Dr. Johnathan Clark, Paramedic Jane Smith"
+                            value="{{ responder_name or '' }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="organization" class="form-label">Organization / Hospital / Agency (Optional)</label>
+                        <input 
+                            type="text" 
+                            id="organization" 
+                            name="organization" 
+                            class="form-input" 
+                            placeholder="e.g. Metro General Hospital, City EMS Unit 4"
+                            value="{{ organization or '' }}"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reason" class="form-label">Reason for Emergency Access *</label>
+                        <input 
+                            type="text" 
+                            id="reason" 
+                            name="reason" 
+                            class="form-input" 
+                            placeholder="e.g. Unconscious road trauma, acute anaphylaxis, ER triage"
+                            value="{{ reason or '' }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group" style="margin-top: 1.25rem;">
+                        <label class="form-checkbox" style="align-items: flex-start; gap: 0.75rem;">
+                            <input type="checkbox" id="confirm_emergency" name="confirm_emergency" required style="margin-top: 0.25rem;">
+                            <span style="font-size: 0.875rem; color: var(--text-main); line-height: 1.5;">
+                                <strong>I confirm that this information is being accessed for an emergency medical purpose.</strong>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button type="submit" class="btn btn-primary btn-block" style="background-color: var(--emergency); border-color: var(--emergency); padding: 0.75rem 1rem;">
+                            Request Emergency Access
+                        </button>
+                        <a href="{{ url_for('emergency_access', medi_id=medi_id) }}" class="btn btn-secondary btn-block">
+                            Cancel & Return
+                        </a>
+                    </div>
+                </form>
+
+                <div class="auth-footer" style="font-size: 0.8rem;">
+                    Notice: Emergency access tokens expire automatically in 10 minutes. All access attempts record network IP and timestamp to the patient audit log.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">MediID Emergency Portal © 2026</div>
+            <div class="footer-note">Confidential First Responder Clinical Gateway</div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

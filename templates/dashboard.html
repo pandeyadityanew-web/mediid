@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Dashboard - MediID</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Authenticated Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('dashboard') }}" class="nav-brand">
+                <span class="brand-icon">+</span>
+                <span>MediID</span>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
+            <nav>
+                <ul class="nav-menu" id="navMenu">
+                    <li><a href="{{ url_for('dashboard') }}" class="nav-link active">Dashboard</a></li>
+                    <li><a href="{{ url_for('medical_profile') }}" class="nav-link">Medical Profile</a></li>
+                    <li><a href="{{ url_for('emergency_contacts') }}" class="nav-link">Emergency Contacts</a></li>
+                    <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Content -->
+    <main class="main-wrapper">
+        <!-- Flash Message Alerts -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Patient Header Banner -->
+        <section class="patient-banner">
+            <div class="patient-info">
+                <h1>Welcome, {{ user['full_name'] }}</h1>
+                <div class="patient-meta">
+                    <span class="medi-id-chip">
+                        <span>MediID:</span>
+                        <strong>{{ user['medi_id'] }}</strong>
+                    </span>
+                    <span>Account Created: {{ user['created_at'][:10] if user['created_at'] else 'Active' }}</span>
+                    <span>Last Updated: {{ profile['updated_at'][:16] if profile and profile['updated_at'] else 'New Profile' }}</span>
+                </div>
+            </div>
+            <div>
+                <a href="{{ url_for('medical_profile') }}" class="btn btn-primary">Edit Medical Profile</a>
+            </div>
+        </section>
+
+        <!-- Profile Completion Card -->
+        <section class="completion-wrapper">
+            <div class="completion-header">
+                <span>Profile Completion</span>
+                <span style="color: var(--primary); font-weight: 700;">{{ completion_pct }}%</span>
+            </div>
+            <div class="completion-bar-bg">
+                <div class="completion-bar-fill" style="width: {{ completion_pct }}%;"></div>
+            </div>
+            <p class="completion-note">
+                Calculated based on vital demographics, blood type, clinical factors, and having at least one emergency contact.
+            </p>
+        </section>
+
+        <!-- Dashboard Cards Grid -->
+        <div class="dashboard-grid">
+            <!-- 1. Medical Information Card -->
+            <div class="dashboard-card">
+                <div class="card-top">
+                    <div class="card-title-bar">
+                        <h2 class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                            </svg>
+                            Medical Information
+                        </h2>
+                        {% if profile and profile['blood_group'] %}
+                            <span class="badge-blood">{{ profile['blood_group'] }}</span>
+                        {% else %}
+                            <span class="badge-pill">Blood Type Unset</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="info-list">
+                        <div class="info-row">
+                            <span class="info-label">Blood Group:</span>
+                            <span class="info-val">{{ profile['blood_group'] if profile and profile['blood_group'] else 'Not specified' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Allergies:</span>
+                            <span class="info-val">{{ profile['allergies'] if profile and profile['allergies'] else 'None recorded' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Conditions:</span>
+                            <span class="info-val">{{ profile['medical_conditions'] if profile and profile['medical_conditions'] else 'None recorded' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Medications:</span>
+                            <span class="info-val">{{ profile['current_medications'] if profile and profile['current_medications'] else 'None recorded' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-bottom">
+                    <a href="{{ url_for('medical_profile') }}" class="btn btn-secondary btn-block">Edit Medical Profile</a>
+                </div>
+            </div>
+
+            <!-- 2. Emergency Contacts Card -->
+            <div class="dashboard-card">
+                <div class="card-top">
+                    <div class="card-title-bar">
+                        <h2 class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            Emergency Contacts
+                        </h2>
+                        <span class="badge-pill">{{ contact_count }} Contact(s)</span>
+                    </div>
+
+                    <div class="info-list">
+                        <div class="info-row">
+                            <span class="info-label">Registered Contacts:</span>
+                            <span class="info-val">{{ contact_count }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">First Responders:</span>
+                            <span class="info-val">Direct Call Ready</span>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 1rem; line-height: 1.5;">
+                        Emergency contacts are immediately reachable when first responders scan your emergency MediID.
+                    </p>
+                </div>
+
+                <div class="card-bottom">
+                    <a href="{{ url_for('emergency_contacts') }}" class="btn btn-secondary btn-block">Manage Contacts</a>
+                </div>
+            </div>
+
+            <!-- 3. MediID & QR Code Card -->
+            <div class="dashboard-card qr-dashboard-card">
+                <div class="card-top">
+                    <div class="card-title-bar">
+                        <h2 class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="14" width="7" height="7"></rect>
+                                <rect x="3" y="14" width="7" height="7"></rect>
+                            </svg>
+                            Emergency MediID Card
+                        </h2>
+                        <span class="badge-pill" style="background-color: var(--secondary-light); color: var(--secondary-hover); font-weight: 700;">Active ID</span>
+                    </div>
+
+                    <div class="qr-container">
+                        <div class="qr-image-frame">
+                            <img 
+                                src="{{ url_for('static', filename='generated_qr/' ~ user['medi_id'] ~ '.png') }}" 
+                                alt="MediID Emergency QR Code for {{ user['medi_id'] }}" 
+                                class="qr-image"
+                            >
+                        </div>
+
+                        <div class="qr-medi-code">{{ user['medi_id'] }}</div>
+                        <div class="qr-instruction">Scan to access emergency information</div>
+                        <p class="qr-notice">
+                            Keep this QR accessible on your lockscreen, wallet card, or medical bracelet for first responders.
+                        </p>
+
+                        <div class="qr-action-buttons">
+                            <a href="{{ url_for('download_qr') }}" class="btn btn-primary btn-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Download QR
+                            </a>
+
+                            <button type="button" onclick="window.print();" class="btn btn-secondary btn-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                    <rect x="6" y="14" width="12" height="8"></rect>
+                                </svg>
+                                Print MediID Card
+                            </button>
+                        </div>
+
+                        <form action="{{ url_for('regenerate_qr') }}" method="POST" style="margin-top: 1rem;">
+                            <button type="submit" class="btn-link" style="background: none; border: none; font-size: 0.8rem; color: var(--text-muted); cursor: pointer; text-decoration: underline;">
+                                Regenerate QR Code Image
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Access History Section (Part 5) -->
+        <section class="completion-wrapper" style="margin-top: 1.5rem;">
+            <div class="card-title-bar" style="border-bottom: none; margin-bottom: 0.5rem; padding-bottom: 0;">
+                <div>
+                    <h2 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        Emergency Access Audit History
+                    </h2>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Real-time log of first responders and medical providers who have requested emergency access to your profile.
+                    </p>
+                </div>
+                <span class="badge-pill">{{ access_history|length if access_history else 0 }} Event(s)</span>
+            </div>
+
+            {% if access_history %}
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Responder</th>
+                                <th>Organization</th>
+                                <th>Reason</th>
+                                <th>IP Address</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in access_history %}
+                                <tr>
+                                    <td><strong>{{ item['created_at'] }}</strong></td>
+                                    <td>{{ item['responder_name'] }}</td>
+                                    <td>{{ item['organization'] or 'Independent' }}</td>
+                                    <td>{{ item['reason'] }}</td>
+                                    <td><code style="font-size: 0.8rem; background-color: #f1f5f9; padding: 0.15rem 0.35rem; border-radius: 4px;">{{ item['ip_address'] or '127.0.0.1' }}</code></td>
+                                    <td>
+                                        {% if item['status'] == 'Active' %}
+                                            <span class="badge-status-active">Active</span>
+                                        {% else %}
+                                            <span class="badge-status-expired">Expired</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state" style="margin-bottom: 0; margin-top: 1rem; padding: 1.5rem;">
+                    <p style="margin-bottom: 0;">No emergency accesses have been requested for your MediID. Your profile is monitored and secure.</p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">MediID © 2026</div>
+            <div class="footer-note">Confidential & Patient-Controlled Medical Identity</div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
