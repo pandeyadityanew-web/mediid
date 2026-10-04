@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emergency Clinical Record - MediID</title>
+    <title>Emergency Clinical Record - SahayID</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <!-- Top Emergency Header -->
     <header class="navbar" style="border-bottom: 2px solid var(--emergency);">
         <div class="nav-container">
-            <a href="{{ url_for('index') }}" class="nav-brand">
-                <span class="brand-icon" style="background: var(--emergency);">+</span>
-                <span>MediID Emergency Portal</span>
+            <a href="{{ url_for('index') }}" class="nav-brand brand-logo-wrap">
+                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SahayID - CRITICAL MEDICAL ACCESS" class="brand-logo-img">
+                <span style="display:none;">MediID</span>
             </a>
             <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Active Clinical Session</span>
         </div>
@@ -43,7 +43,7 @@
                     {% endif %}
 
                     <a href="{{ url_for('index') }}" class="btn btn-secondary btn-block">
-                        Return to MediID
+                        Return to SahayID
                     </a>
                 </div>
             </div>
@@ -281,7 +281,7 @@
 
     <footer class="footer">
         <div class="footer-content">
-            <div class="footer-brand">MediID Emergency Access System © 2026</div>
+            <div class="footer-brand">SahayID Emergency Access System © 2026</div>
             <div class="footer-note">Confidential First Responder Clinical Gateway</div>
         </div>
     </footer>

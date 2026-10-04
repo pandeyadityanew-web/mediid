@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <linearGradient id="shieldGradIcon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="crossGradIcon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Shield Path -->
+  <path d="M32 4 C49 4, 60 11, 60 11 C60 36, 48 54, 32 62 C16 54, 4 36, 4 11 C4 11, 15 4, 32 4 Z" 
+        fill="url(#shieldGradIcon)"/>
+  
+  <!-- Inner Accent Rim -->
+  <path d="M32 7 C46 7, 56 13, 56 13 C56 34, 45 50, 32 58 C19 50, 8 34, 8 13 C8 13, 18 7, 32 7 Z" 
+        fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-opacity="0.6"/>
+
+  <!-- Emergency Medical Cross -->
+  <path d="M27 18 H37 V27 H46 V37 H37 V46 H27 V37 H18 V27 H27 Z" 
+        fill="url(#crossGradIcon)"/>
+
+  <!-- Pulse / Lifeline Detail in Center of Cross -->
+  <path d="M21 32 H26 L28 27 L33 37 L36 31 L38 32 H43" 
+        stroke="#e11d48" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

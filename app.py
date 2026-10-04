@@ -1,6 +1,6 @@
 """
-MediID - Digital Medical Identity System
-Part 5: Emergency Access & Verification System
+SahayID - Digital Medical Identity System
+Tagline: CRITICAL MEDICAL ACCESS
 """
 
 import os
@@ -25,19 +25,59 @@ QR_DIR = os.path.join(BASE_DIR, 'static', 'generated_qr')
 
 
 # ============================================================================
-# Authentication Decorator
+# Role-Based Authentication & Authorization Decorators
 # ============================================================================
 
 def login_required(f):
     """
-    Decorator requiring an active session user_id to access protected routes.
+    Decorator requiring an active session (patient user_id or doctor_id) to access protected routes.
     Redirects unauthenticated visitors to the login view.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash("Please sign in to access your MediID portal.", "error")
+        if 'user_id' not in session and 'doctor_id' not in session:
+            flash("Please sign in to access your SahayID portal.", "error")
             return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def patient_required(f):
+    """
+    Decorator ensuring that only authenticated patient accounts can access patient routes.
+    Prevents doctor accounts from entering patient account-management workflows.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            if 'doctor_id' in session:
+                flash("Access restricted to patient accounts.", "error")
+                return redirect(url_for('doctor_dashboard'))
+            flash("Please sign in to access your SahayID patient portal.", "error")
+            return redirect(url_for('login'))
+        if session.get('role') != 'patient':
+            flash("Access restricted to patient accounts.", "error")
+            return redirect(url_for('doctor_dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def doctor_required(f):
+    """
+    Decorator ensuring that only authenticated doctor accounts can access doctor routes.
+    Prevents patient accounts from accessing the clinical doctor portal.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'doctor_id' not in session:
+            if 'user_id' in session:
+                flash("Access restricted to verified medical doctors.", "error")
+                return redirect(url_for('dashboard'))
+            flash("Please sign in with your Doctor credentials.", "error")
+            return redirect(url_for('doctor_login'))
+        if session.get('role') != 'doctor':
+            flash("Access restricted to verified medical doctors.", "error")
+            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -95,6 +135,27 @@ def generate_unique_medi_id(conn):
             return candidate_id
 
     raise RuntimeError("Unable to generate a unique MediID after multiple attempts.")
+
+
+def generate_unique_doctor_id(conn):
+    """
+    Generate a cryptographically random, collision-resistant Doctor ID in the format:
+    DOC-XXXXXXXX (where X is an uppercase alphanumeric character).
+    Ensures uniqueness against existing records in the doctors table.
+    """
+    alphabet = string.ascii_uppercase + string.digits
+    max_attempts = 100
+
+    for _ in range(max_attempts):
+        suffix = ''.join(secrets.choice(alphabet) for _ in range(8))
+        candidate_id = f"DOC-{suffix}"
+
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM doctors WHERE doctor_id = ?", (candidate_id,))
+        if cursor.fetchone() is None:
+            return candidate_id
+
+    raise RuntimeError("Unable to generate a unique Doctor ID after multiple attempts.")
 
 
 def calculate_profile_completion(profile, contact_count):
@@ -231,7 +292,7 @@ def init_db():
             );
         """)
 
-        # 5. emergency_access table (Part 5)
+        # 5. emergency_access table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS emergency_access (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -248,6 +309,37 @@ def init_db():
             );
         """)
 
+        # 6. doctors table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS doctors (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                doctor_id TEXT UNIQUE NOT NULL,
+                full_name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                phone TEXT,
+                password_hash TEXT NOT NULL,
+                specialization TEXT NOT NULL,
+                hospital_or_clinic TEXT NOT NULL,
+                registration_number TEXT NOT NULL,
+                verification_status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+
+        # Extend access_logs columns defensively if they do not exist
+        cursor.execute("PRAGMA table_info(access_logs);")
+        access_cols = [col[1] for col in cursor.fetchall()]
+        if 'doctor_id' not in access_cols:
+            cursor.execute("ALTER TABLE access_logs ADD COLUMN doctor_id INTEGER;")
+        if 'actor_type' not in access_cols:
+            cursor.execute("ALTER TABLE access_logs ADD COLUMN actor_type TEXT DEFAULT 'PATIENT';")
+        if 'actor_name' not in access_cols:
+            cursor.execute("ALTER TABLE access_logs ADD COLUMN actor_name TEXT;")
+        if 'organization' not in access_cols:
+            cursor.execute("ALTER TABLE access_logs ADD COLUMN organization TEXT;")
+        if 'reason' not in access_cols:
+            cursor.execute("ALTER TABLE access_logs ADD COLUMN reason TEXT;")
+
         # Database Indexes for Performance & Scalability
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_medi_id ON users (medi_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);")
@@ -255,6 +347,8 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_emergency_contacts_user ON emergency_contacts (user_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_logs_user ON access_logs (user_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_medical_profiles_user ON medical_profiles (user_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_doctors_doctor_id ON doctors (doctor_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_doctors_email ON doctors (email);")
 
         conn.commit()
     finally:
@@ -395,20 +489,21 @@ def login():
                 flash("Invalid email/MediID or password.", "error")
                 return render_template('login.html', identifier=identifier)
 
-            # Establish authenticated session
+            # Establish authenticated patient session
             session.clear()
             session['user_id'] = user['id']
             session['medi_id'] = user['medi_id']
             session['full_name'] = user['full_name']
+            session['role'] = 'patient'
 
             # Record access log entry
             client_ip = request.remote_addr or '127.0.0.1'
             cursor.execute(
                 """
-                INSERT INTO access_logs (user_id, access_type, ip_address)
-                VALUES (?, ?, ?)
+                INSERT INTO access_logs (user_id, access_type, ip_address, actor_type, actor_name)
+                VALUES (?, 'LOGIN', ?, 'PATIENT', ?)
                 """,
-                (user['id'], 'LOGIN', client_ip)
+                (user['id'], client_ip, user['full_name'])
             )
             db.commit()
 
@@ -424,10 +519,273 @@ def login():
 
 @app.route('/logout')
 def logout():
-    """Clear user session and redirect to login page."""
+    """Clear user session and redirect to landing page."""
     session.clear()
     flash("You have been signed out successfully.", "info")
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
+
+
+# ============================================================================
+# Doctor Portal & Verification Routes
+# ============================================================================
+
+@app.route('/doctor/login', methods=['GET', 'POST'])
+def doctor_login():
+    """
+    Doctor authentication route.
+    Accepts Email or Doctor ID with password, verifies credentials,
+    sets doctor session state, and redirects to doctor dashboard.
+    """
+    if request.method == 'POST':
+        identifier = request.form.get('identifier', '').strip()
+        password = request.form.get('password', '')
+
+        if not identifier or not password:
+            flash("Please provide both Doctor ID / Email and password.", "error")
+            return render_template('doctor_login.html', identifier=identifier)
+
+        db = get_db()
+        try:
+            cursor = db.cursor()
+            cursor.execute(
+                """
+                SELECT id, doctor_id, full_name, email, specialization, hospital_or_clinic,
+                       registration_number, verification_status, password_hash
+                FROM doctors
+                WHERE email = ? OR UPPER(doctor_id) = ?
+                """,
+                (identifier.lower(), identifier.upper())
+            )
+            doctor = cursor.fetchone()
+
+            if doctor is None or not check_password_hash(doctor['password_hash'], password):
+                flash("Invalid doctor ID / email or password.", "error")
+                return render_template('doctor_login.html', identifier=identifier)
+
+            # Establish authenticated doctor session
+            session.clear()
+            session['doctor_id'] = doctor['id']
+            session['doc_code'] = doctor['doctor_id']
+            session['full_name'] = doctor['full_name']
+            session['specialization'] = doctor['specialization']
+            session['hospital_or_clinic'] = doctor['hospital_or_clinic']
+            session['registration_number'] = doctor['registration_number']
+            session['verification_status'] = doctor['verification_status']
+            session['role'] = 'doctor'
+
+            flash(f"Welcome, {doctor['full_name']}!", "success")
+            next_url = request.args.get('next')
+            if next_url and next_url.startswith('/'):
+                return redirect(next_url)
+            return redirect(url_for('doctor_dashboard'))
+
+        except sqlite3.Error:
+            flash("An error occurred during doctor sign in. Please try again.", "error")
+            return render_template('doctor_login.html', identifier=identifier)
+
+    return render_template('doctor_login.html')
+
+
+@app.route('/doctor/register', methods=['GET', 'POST'])
+def doctor_register():
+    """
+    Doctor registration route.
+    Allows medical practitioners to register.
+    Academic / Prototype Note: Real medical council API verification is not performed.
+    Accounts are created with verification_status = 'pending' by default.
+    """
+    if request.method == 'POST':
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        phone = request.form.get('phone', '').strip()
+        specialization = request.form.get('specialization', '').strip()
+        hospital = request.form.get('hospital_or_clinic', '').strip()
+        registration_num = request.form.get('registration_number', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        # Validations
+        if not full_name or not email or not specialization or not hospital or not registration_num or not password:
+            flash("Please complete all required fields.", "error")
+            return render_template('doctor_register.html', full_name=full_name, email=email,
+                                   phone=phone, specialization=specialization,
+                                   hospital_or_clinic=hospital, registration_number=registration_num)
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return render_template('doctor_register.html', full_name=full_name, email=email,
+                                   phone=phone, specialization=specialization,
+                                   hospital_or_clinic=hospital, registration_number=registration_num)
+
+        if len(password) < 8:
+            flash("Password must be at least 8 characters long.", "error")
+            return render_template('doctor_register.html', full_name=full_name, email=email,
+                                   phone=phone, specialization=specialization,
+                                   hospital_or_clinic=hospital, registration_number=registration_num)
+
+        db = get_db()
+        try:
+            cursor = db.cursor()
+            cursor.execute("SELECT id FROM doctors WHERE email = ?", (email,))
+            if cursor.fetchone():
+                flash("A doctor account with this email address already exists. Please sign in.", "error")
+                return render_template('doctor_register.html', full_name=full_name, email=email,
+                                       phone=phone, specialization=specialization,
+                                       hospital_or_clinic=hospital, registration_number=registration_num)
+
+            doc_id = generate_unique_doctor_id(db)
+            password_hash = generate_password_hash(password)
+
+            cursor.execute(
+                """
+                INSERT INTO doctors (doctor_id, full_name, email, phone, password_hash,
+                                     specialization, hospital_or_clinic, registration_number, verification_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+                """,
+                (doc_id, full_name, email, phone, password_hash, specialization, hospital, registration_num)
+            )
+            db.commit()
+
+            flash(
+                f"Doctor account registered successfully! Your Doctor ID is {doc_id}. "
+                "Account status is Pending Verification (Academic Prototype).",
+                "success"
+            )
+            return redirect(url_for('doctor_login'))
+
+        except sqlite3.Error:
+            db.rollback()
+            flash("A database error occurred during doctor registration. Please try again.", "error")
+            return render_template('doctor_register.html', full_name=full_name, email=email,
+                                   phone=phone, specialization=specialization,
+                                   hospital_or_clinic=hospital, registration_number=registration_num)
+
+    return render_template('doctor_register.html')
+
+
+@app.route('/doctor/dashboard')
+@login_required
+@doctor_required
+def doctor_dashboard():
+    """
+    Dedicated Doctor Portal Dashboard.
+    Displays doctor profile details, verification status, patient lookup tools,
+    and recent patient record access history.
+    """
+    doctor_id = session['doctor_id']
+    db = get_db()
+    cursor = db.cursor()
+
+    cursor.execute("SELECT * FROM doctors WHERE id = ?", (doctor_id,))
+    doctor = cursor.fetchone()
+    if not doctor:
+        session.clear()
+        flash("Doctor session expired or invalid.", "error")
+        return redirect(url_for('doctor_login'))
+
+    # Retrieve recent patient accesses logged by this doctor
+    cursor.execute(
+        """
+        SELECT al.id, al.accessed_at, al.reason, al.ip_address,
+               u.medi_id, u.full_name as patient_name
+        FROM access_logs al
+        JOIN users u ON al.user_id = u.id
+        WHERE al.doctor_id = ? AND al.access_type = 'DOCTOR_ACCESS'
+        ORDER BY al.id DESC
+        LIMIT 10
+        """,
+        (doctor_id,)
+    )
+    recent_accesses = cursor.fetchall()
+
+    return render_template('doctor_dashboard.html', doctor=doctor, recent_accesses=recent_accesses)
+
+
+@app.route('/doctor/patient/search', methods=['POST'])
+@login_required
+@doctor_required
+def doctor_patient_search():
+    """
+    Search action handler from Doctor Dashboard.
+    Validates SahayID Number and redirects to clinical patient record.
+    """
+    sahay_id = request.form.get('sahay_id', '').strip().upper()
+    if not sahay_id:
+        flash("Please enter a valid SahayID Number to search.", "error")
+        return redirect(url_for('doctor_dashboard'))
+
+    return redirect(url_for('doctor_patient_view', medi_id=sahay_id))
+
+
+@app.route('/doctor/patient/<medi_id>')
+@login_required
+@doctor_required
+def doctor_patient_view(medi_id):
+    """
+    Authorized Doctor Clinical View.
+    Enforces doctor verification status, logs DOCTOR_ACCESS audit event,
+    and displays patient's emergency medical record to authorized physician.
+    """
+    doctor_id = session['doctor_id']
+    db = get_db()
+    cursor = db.cursor()
+
+    # Verify doctor profile and verification status
+    cursor.execute("SELECT * FROM doctors WHERE id = ?", (doctor_id,))
+    doctor = cursor.fetchone()
+    if not doctor:
+        session.clear()
+        return redirect(url_for('doctor_login'))
+
+    if doctor['verification_status'] != 'verified':
+        flash(
+            f"Access restricted: Only verified doctors are authorized to access patient records. "
+            f"Your current status is: {doctor['verification_status'].title()}.",
+            "error"
+        )
+        return redirect(url_for('doctor_dashboard'))
+
+    # Lookup patient by SahayID Number (medi_id)
+    cursor.execute("SELECT * FROM users WHERE UPPER(medi_id) = ?", (medi_id.upper(),))
+    patient = cursor.fetchone()
+    if not patient:
+        flash(f"No patient record found for SahayID Number: {medi_id}", "error")
+        return redirect(url_for('doctor_dashboard'))
+
+    # Retrieve patient medical profile
+    cursor.execute("SELECT * FROM medical_profiles WHERE user_id = ?", (patient['id'],))
+    profile = cursor.fetchone()
+
+    # Retrieve emergency contacts
+    cursor.execute(
+        "SELECT name, relationship, phone FROM emergency_contacts WHERE user_id = ? ORDER BY id ASC",
+        (patient['id'],)
+    )
+    contacts = cursor.fetchall()
+
+    # Log DOCTOR_ACCESS event
+    client_ip = request.remote_addr or '127.0.0.1'
+    reason = request.args.get('reason', 'Authorized Clinical Review')
+    try:
+        cursor.execute(
+            """
+            INSERT INTO access_logs (user_id, doctor_id, actor_type, actor_name, organization, reason, access_type, ip_address)
+            VALUES (?, ?, 'DOCTOR', ?, ?, ?, 'DOCTOR_ACCESS', ?)
+            """,
+            (patient['id'], doctor['id'], doctor['full_name'], doctor['hospital_or_clinic'], reason, client_ip)
+        )
+        db.commit()
+    except sqlite3.Error:
+        pass
+
+    return render_template(
+        'doctor_patient_view.html',
+        patient=patient,
+        profile=profile,
+        contacts=contacts,
+        doctor=doctor
+    )
+
 
 
 # ============================================================================
@@ -436,12 +794,13 @@ def logout():
 
 @app.route('/dashboard')
 @login_required
+@patient_required
 def dashboard():
     """
     Patient Dashboard.
-    Displays user MediID, personal summary, profile completion percentage,
+    Displays user SahayID Number, personal summary, profile completion percentage,
     blood group, emergency contacts overview, scannable QR code, and
-    the audit history of all emergency accesses.
+    the audit history of all emergency and doctor accesses.
     """
     user_id = session['user_id']
     db = get_db()
@@ -488,10 +847,10 @@ def dashboard():
         base_url = request.host_url.rstrip('/') if request else None
         generate_medi_qr(user['medi_id'], base_url)
 
-    # Retrieve Emergency Access History (Part 5)
+    # Retrieve Emergency Access History & Doctor Access Events
     cursor.execute(
         """
-        SELECT responder_name, organization, reason, created_at, expires_at, accessed_at, ip_address
+        SELECT responder_name, organization, reason, created_at, expires_at, accessed_at, ip_address, 'EMERGENCY' as access_source
         FROM emergency_access
         WHERE user_id = ?
         ORDER BY created_at DESC
@@ -499,20 +858,44 @@ def dashboard():
         """,
         (user_id,)
     )
-    raw_history = cursor.fetchall()
+    emergency_rows = cursor.fetchall()
+
+    cursor.execute(
+        """
+        SELECT actor_name as responder_name, organization, reason, accessed_at as created_at,
+               'Authorized Session' as expires_at, accessed_at, ip_address, 'DOCTOR' as access_source
+        FROM access_logs
+        WHERE user_id = ? AND access_type = 'DOCTOR_ACCESS'
+        ORDER BY accessed_at DESC
+        LIMIT 10
+        """,
+        (user_id,)
+    )
+    doctor_rows = cursor.fetchall()
+
+    all_history_rows = list(emergency_rows) + list(doctor_rows)
+    all_history_rows.sort(key=lambda r: r['created_at'] or '', reverse=True)
+
     access_history = []
     now_utc_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
-    for row in raw_history:
-        status = 'Active' if row['expires_at'] > now_utc_str else 'Expired'
+    for row in all_history_rows[:15]:
+        if row['access_source'] == 'DOCTOR':
+            status = 'Authorized'
+            actor_label = f"Doctor: {row['responder_name']}"
+        else:
+            status = 'Active' if row['expires_at'] > now_utc_str else 'Expired'
+            actor_label = row['responder_name']
+
         access_history.append({
-            'responder_name': row['responder_name'],
+            'responder_name': actor_label,
             'organization': row['organization'],
             'reason': row['reason'],
             'created_at': row['created_at'][:19] if row['created_at'] else '',
             'expires_at': row['expires_at'][:19] if row['expires_at'] else '',
             'ip_address': row['ip_address'],
-            'status': status
+            'status': status,
+            'access_source': row['access_source']
         })
 
     return render_template(
@@ -527,6 +910,7 @@ def dashboard():
 
 @app.route('/download-qr')
 @login_required
+@patient_required
 def download_qr():
     """
     Secure QR code file download.
@@ -553,6 +937,7 @@ def download_qr():
 
 @app.route('/regenerate-qr', methods=['POST'])
 @login_required
+@patient_required
 def regenerate_qr():
     """
     Regenerates the authenticated user's QR code image.
@@ -572,6 +957,7 @@ def regenerate_qr():
 
 @app.route('/medical-profile', methods=['GET', 'POST'])
 @login_required
+@patient_required
 def medical_profile():
     """
     Medical Profile Management.
@@ -652,6 +1038,7 @@ def medical_profile():
 
 @app.route('/emergency-contacts', methods=['GET', 'POST'])
 @login_required
+@patient_required
 def emergency_contacts():
     """
     Emergency Contacts Management.
@@ -700,6 +1087,7 @@ def emergency_contacts():
 
 @app.route('/emergency-contacts/delete/<int:contact_id>', methods=['POST'])
 @login_required
+@patient_required
 def delete_emergency_contact(contact_id):
     """
     Secure deletion of an emergency contact.
@@ -734,16 +1122,16 @@ def delete_emergency_contact(contact_id):
 
 
 # ============================================================================
-# Emergency Gateway & Verification Routes (Parts 4 & 5)
+# Emergency Gateway & Verification Routes
 # ============================================================================
 
 @app.route('/emergency/<medi_id>')
 def emergency_access(medi_id):
     """
     Emergency Scanned Gateway.
-    Target endpoint encoded inside the MediID QR code.
-    Publicly accessible to first responders scanning a physical badge/card.
-    CRITICAL PRIVACY: Does NOT expose medical information.
+    Target endpoint encoded inside the SahayID QR code.
+    Publicly accessible to first responders and doctors scanning a physical badge/card.
+    CRITICAL PRIVACY: Does NOT expose medical information directly.
     Presents an authorization gateway and logs the access scan event.
     """
     db = get_db()
@@ -756,7 +1144,7 @@ def emergency_access(medi_id):
     user = cursor.fetchone()
 
     if not user:
-        flash(f"No active record found for MediID: {medi_id}", "error")
+        flash(f"No active record found for SahayID: {medi_id}", "error")
         return render_template('emergency_access.html', medi_id=medi_id, not_found=True), 404
 
     # Log emergency scan event
@@ -764,8 +1152,8 @@ def emergency_access(medi_id):
     try:
         cursor.execute(
             """
-            INSERT INTO access_logs (user_id, access_type, ip_address)
-            VALUES (?, 'EMERGENCY_SCAN', ?)
+            INSERT INTO access_logs (user_id, access_type, ip_address, actor_type)
+            VALUES (?, 'EMERGENCY_SCAN', ?, 'RESPONDER')
             """,
             (user['id'], client_ip)
         )
@@ -773,13 +1161,21 @@ def emergency_access(medi_id):
     except sqlite3.Error:
         pass
 
-    return render_template('emergency_access.html', medi_id=user['medi_id'])
+    is_doctor = (session.get('role') == 'doctor')
+    doctor_name = session.get('full_name') if is_doctor else None
+
+    return render_template(
+        'emergency_access.html',
+        medi_id=user['medi_id'],
+        is_doctor=is_doctor,
+        doctor_name=doctor_name
+    )
 
 
 @app.route('/emergency/<medi_id>/verify', methods=['GET', 'POST'])
 def emergency_verify(medi_id):
     """
-    Emergency Authorization Protocol (Part 5).
+    Emergency Authorization Protocol.
     Allows first responders to confirm the emergency situation and state their identity/reason.
     Generates a cryptographically random, temporary access token (10-minute expiry)
     and stores only the SHA-256 hash in the database.
@@ -880,7 +1276,7 @@ def emergency_verify(medi_id):
 @app.route('/emergency/access/<token>')
 def emergency_access_view(token):
     """
-    Temporary Emergency Clinical Information View (Part 5).
+    Temporary Emergency Clinical Information View.
     Resolves temporary token via SHA-256 hash lookup.
     Enforces strict server-side 10-minute expiration.
     Displays critical medical essentials, allergies, and emergency contacts.

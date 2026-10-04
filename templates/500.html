@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>500 Internal Error - MediID</title>
+    <title>500 Internal Error - SahayID</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <header class="navbar">
         <div class="nav-container">
-            <a href="{{ url_for('index') }}" class="nav-brand">
-                <span class="brand-icon">+</span>
-                <span>MediID</span>
+            <a href="{{ url_for('index') }}" class="nav-brand brand-logo-wrap">
+                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SahayID - CRITICAL MEDICAL ACCESS" class="brand-logo-img">
+                <span style="display:none;">MediID</span>
             </a>
             <nav>
                 <ul class="nav-menu">
@@ -37,7 +37,7 @@
 
     <footer class="footer">
         <div class="footer-content">
-            <div class="footer-brand">MediID © 2026</div>
+            <div class="footer-brand">SahayID © 2026</div>
             <div class="footer-note">Confidential & Patient-Controlled Medical Identity</div>
         </div>
     </footer>

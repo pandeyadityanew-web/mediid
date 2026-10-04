@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Record: {{ patient['full_name'] }} - SahayID</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/icon.svg') }}">
+</head>
+<body>
+    <!-- Authenticated Doctor Navigation Header -->
+    <header class="navbar" style="border-bottom: 2px solid var(--secondary);">
+        <div class="nav-container">
+            <a href="{{ url_for('doctor_dashboard') }}" class="brand-logo-wrap">
+                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SahayID - CRITICAL MEDICAL ACCESS" class="brand-logo-img">
+                <span style="display:none;">MediID</span>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
+            <nav>
+                <ul class="nav-menu" id="navMenu">
+                    <li><a href="{{ url_for('doctor_dashboard') }}" class="nav-link">Doctor Dashboard</a></li>
+                    <li><span class="doctor-badge-chip">{{ doctor['full_name'] }}</span></li>
+                    <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+        <!-- Flash Message Alerts -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Authorization & Audit Bar -->
+        <div class="alert alert-info" style="margin-bottom: 1.5rem; background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 0.85rem 1.25rem; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+                <strong>Authorized Clinical Review:</strong> Medical record accessed by <strong>{{ doctor['full_name'] }}</strong> ({{ doctor['hospital_or_clinic'] }} &bull; {{ doctor['doctor_id'] }}).
+            </div>
+            <span style="font-size: 0.8rem; background: #dcfce7; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 700;">
+                Logged in Patient Audit Trail
+            </span>
+        </div>
+
+        <!-- Patient Overview Banner -->
+        <div class="patient-banner" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border-left: 6px solid var(--secondary);">
+            <div class="patient-info">
+                <span class="badge-pill" style="margin-bottom: 0.35rem; display: inline-block; font-size: 0.75rem; color: var(--text-muted);">
+                    Patient Record &bull; SahayID Network
+                </span>
+                <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.35rem;">
+                    {{ patient['full_name'] }}
+                </h1>
+                <div class="patient-meta">
+                    <span class="medi-id-chip">
+                        <span>SahayID:</span>
+                        <strong>{{ patient['medi_id'] }}</strong>
+                    </span>
+                    {% if profile and profile['date_of_birth'] %}
+                        <span>DOB: <strong>{{ profile['date_of_birth'] }}</strong></span>
+                    {% endif %}
+                    {% if profile and profile['gender'] %}
+                        <span>Gender: <strong>{{ profile['gender'] }}</strong></span>
+                    {% endif %}
+                    {% if patient['phone'] %}
+                        <span>Phone: <strong>{{ patient['phone'] }}</strong></span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <span style="font-size: 0.8rem; color: var(--text-muted); display: block; text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Blood Group</span>
+                {% if profile and profile['blood_group'] %}
+                    <span class="badge-blood" style="font-size: 1.5rem; padding: 0.35rem 1.15rem;">
+                        {{ profile['blood_group'] }}
+                    </span>
+                {% else %}
+                    <span class="badge-pill">Unspecified</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Clinical Essentials Grid -->
+        <div class="dashboard-grid" style="margin-top: 1.75rem; margin-bottom: 2rem;">
+            <!-- Allergies & Warnings -->
+            <div class="dashboard-card" style="border-top: 3px solid var(--emergency);">
+                <div class="card-top">
+                    <div class="card-title-bar">
+                        <h2 class="card-title" style="color: var(--emergency);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            Allergies & Sensitivities
+                        </h2>
+                        <span class="badge-pill" style="background-color: var(--emergency-light); color: var(--emergency); font-weight: 700;">Critical</span>
+                    </div>
+
+                    <div class="clinical-alert-box">
+                        <strong style="color: var(--emergency); display: block; margin-bottom: 0.25rem;">Known Triggers:</strong>
+                        <p style="font-size: 1rem; color: #4c0519; font-weight: 600;">
+                            {{ profile['allergies'] if profile and profile['allergies'] else 'No allergies recorded by patient' }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medical Conditions -->
+            <div class="dashboard-card" style="border-top: 3px solid var(--primary);">
+                <div class="card-top">
+                    <div class="card-title-bar">
+                        <h2 class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                            </svg>
+                            Chronic Conditions & Illnesses
+                        </h2>
+                    </div>
+                    <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
+                        {{ profile['medical_conditions'] if profile and profile['medical_conditions'] else 'No chronic conditions recorded' }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Current Medications -->
+            <div class="dashboard-card" style="border-top: 3px solid var(--secondary);">
+                <div class="card-top">
+                    <div class="card-title-bar">
+                        <h2 class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7z"></path>
+                                <path d="M8.5 8.5l7 7"></path>
+                            </svg>
+                            Active Medications
+                        </h2>
+                    </div>
+                    <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
+                        {{ profile['current_medications'] if profile and profile['current_medications'] else 'No active prescriptions recorded' }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Previous Surgeries & History -->
+            <div class="dashboard-card">
+                <div class="card-top">
+                    <div class="card-title-bar">
+                        <h2 class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                            Surgical & Clinical History
+                        </h2>
+                    </div>
+                    <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
+                        {{ profile['previous_surgeries'] if profile and profile['previous_surgeries'] else 'No prior surgeries recorded' }}
+                    </p>
+                    {% if profile and profile['additional_notes'] %}
+                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--border-color); font-size: 0.85rem; color: var(--text-muted);">
+                            <strong>Clinical Notes:</strong> {{ profile['additional_notes'] }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Contacts Section -->
+        <div class="card-title-bar" style="margin-top: 1.5rem;">
+            <h2 class="card-title">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Next of Kin & Emergency Contacts
+            </h2>
+            <span class="badge-pill">{{ contacts|length }} Registered</span>
+        </div>
+
+        {% if contacts %}
+            <div class="contacts-grid" style="margin-bottom: 2.5rem;">
+                {% for contact in contacts %}
+                    <div class="contact-item-card" style="border-left: 4px solid var(--secondary);">
+                        <div>
+                            <h3 class="contact-name">{{ contact['name'] }}</h3>
+                            <span class="contact-rel-badge">{{ contact['relationship'] or 'Emergency Contact' }}</span>
+                            <div class="contact-phone-row" style="margin-top: 0.5rem;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                </svg>
+                                <a href="tel:{{ contact['phone'] }}" style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">
+                                    {{ contact['phone'] }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state" style="margin-bottom: 2.5rem;">
+                <p>No emergency contacts listed for this patient.</p>
+            </div>
+        {% endif %}
+
+        <!-- Navigation Buttons -->
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">
+                &larr; Return to Doctor Dashboard
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">SahayID &copy; 2026</div>
+            <div class="footer-note">CRITICAL MEDICAL ACCESS &bull; Verified Doctor Consultation</div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

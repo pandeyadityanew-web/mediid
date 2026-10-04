@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emergency Medical Access - MediID {{ medi_id }}</title>
+    <title>Emergency Clinical Access - SahayID {{ medi_id }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/icon.svg') }}">
 </head>
 <body>
     <!-- Top Emergency Header -->
     <header class="navbar" style="border-bottom: 2px solid var(--emergency);">
         <div class="nav-container">
-            <a href="{{ url_for('index') }}" class="nav-brand">
-                <span class="brand-icon" style="background: var(--emergency);">+</span>
-                <span>MediID Emergency Portal</span>
+            <a href="{{ url_for('index') }}" class="brand-logo-wrap">
+                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SahayID - CRITICAL MEDICAL ACCESS" class="brand-logo-img">
+                <span style="display:none;">MediID</span>
             </a>
-            <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Emergency Mode</span>
+            <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Access Gateway</span>
         </div>
     </header>
 
@@ -31,7 +32,7 @@
             {% endif %}
         {% endwith %}
 
-        <div class="auth-container" style="max-width: 560px;">
+        <div class="auth-container" style="max-width: 580px;">
             <div class="auth-card" style="border-top: 4px solid var(--emergency);">
                 <div class="auth-header">
                     <div style="width: 52px; height: 52px; border-radius: 50%; background-color: var(--emergency-light); color: var(--emergency); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
@@ -42,7 +43,8 @@
                         </svg>
                     </div>
 
-                    <h1 class="auth-title">MediID Emergency Access</h1>
+                    <h1 class="auth-title">SahayID Emergency Access</h1>
+                    <span style="display:none;">MediID Emergency Access</span>
                     <p class="auth-subtitle">First Responder & Clinical Authorization Protocol</p>
                 </div>
 
@@ -52,7 +54,7 @@
                 </div>
 
                 <div style="background-color: var(--bg-page); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; text-align: center; margin-bottom: 1.5rem;">
-                    <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.25rem;">Scanned Medical Identifier</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.25rem;">Scanned SahayID Number</div>
                     <div style="font-family: monospace; font-size: 1.75rem; font-weight: 800; color: #0284c7; letter-spacing: 0.08em;">
                         {{ medi_id }}
                     </div>
@@ -60,22 +62,45 @@
 
                 <div style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); margin-bottom: 1.5rem;">
                     <p style="margin-bottom: 0.85rem;">
-                        You are attempting to access emergency medical information for MediID: <strong>{{ medi_id }}</strong>.
+                        You are attempting to access emergency medical information for SahayID Number: <strong>{{ medi_id }}</strong>.
                     </p>
                     <p style="color: var(--text-muted); font-size: 0.9rem;">
                         To protect patient privacy, authorization and verification are required before sensitive clinical vitals, allergies, conditions, and next-of-kin emergency contacts can be displayed.
                     </p>
                 </div>
 
+                {% if is_doctor %}
+                    <!-- Verified Doctor Fast-Track Option -->
+                    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span class="status-verified">Logged In as Doctor</span>
+                            <strong>{{ doctor_name }}</strong>
+                        </div>
+                        <p style="font-size: 0.85rem; color: #166534; margin-bottom: 1rem;">
+                            You are signed in with a doctor account. You may proceed directly to the full clinical patient record under authorized medical review.
+                        </p>
+                        <a href="{{ url_for('doctor_patient_view', medi_id=medi_id) }}" class="btn btn-primary btn-block" style="background-color: var(--secondary);">
+                            Authorized Doctor Access &rarr; View Patient Record
+                        </a>
+                    </div>
+                {% endif %}
+
                 <div style="background-color: #f8fafc; border-radius: var(--radius-sm); padding: 0.85rem; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.75rem; border: 1px dashed var(--border-color);">
                     <strong>Audit Notice:</strong> This emergency scan has been logged with your network timestamp. Unauthorized access to medical records is prohibited under clinical privacy laws.
                 </div>
 
-                <!-- Verification Action (Placeholder for Part 5) -->
+                <!-- Verification Action -->
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <a href="{{ url_for('emergency_verify', medi_id=medi_id) }}" class="btn btn-primary btn-block" style="padding: 0.8rem 1.25rem;">
                         Continue to Verification
                     </a>
+
+                    {% if not is_doctor %}
+                        <a href="{{ url_for('doctor_login', next=url_for('doctor_patient_view', medi_id=medi_id)) }}" class="btn btn-secondary btn-block" style="color: var(--secondary); border-color: var(--secondary);">
+                            Registered Doctor? Sign In for Clinical Access
+                        </a>
+                    {% endif %}
+
                     <a href="{{ url_for('index') }}" class="btn btn-secondary btn-block">
                         Return to Homepage
                     </a>
@@ -87,8 +112,8 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
-            <div class="footer-brand">MediID Emergency System © 2026</div>
-            <div class="footer-note">Confidential Emergency Responder Access Gateway</div>
+            <div class="footer-brand">SahayID Emergency System &copy; 2026</div>
+            <div class="footer-note">CRITICAL MEDICAL ACCESS &bull; Confidential First Responder & Doctor Gateway</div>
         </div>
     </footer>
 

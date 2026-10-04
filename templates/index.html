@@ -3,28 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediID - Your Medical Identity. Available When It Matters.</title>
+    <title>SahayID - CRITICAL MEDICAL ACCESS</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/icon.svg') }}">
 </head>
 <body>
     <!-- Navigation Header -->
     <header class="navbar">
         <div class="nav-container">
-            <a href="{{ url_for('index') }}" class="nav-brand">
-                <span class="brand-icon">+</span>
-                <span>MediID</span>
+            <a href="{{ url_for('index') }}" class="brand-logo-wrap">
+                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SahayID - CRITICAL MEDICAL ACCESS" class="brand-logo-img">
+                <span style="display:none;">MediID</span>
             </a>
             <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
             <nav>
                 <ul class="nav-menu" id="navMenu">
-                    {% if session.get('user_id') %}
-                        <li><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
+                    {% if session.get('role') == 'doctor' %}
+                        <li><a href="{{ url_for('doctor_dashboard') }}" class="nav-link">Doctor Dashboard</a></li>
+                        <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                    {% elif session.get('role') == 'patient' %}
+                        <li><a href="{{ url_for('dashboard') }}" class="nav-link">Patient Dashboard</a></li>
                         <li><a href="{{ url_for('medical_profile') }}" class="nav-link">Medical Profile</a></li>
                         <li><a href="{{ url_for('emergency_contacts') }}" class="nav-link">Emergency Contacts</a></li>
                         <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
                     {% else %}
                         <li><a href="{{ url_for('index') }}" class="nav-link active">Home</a></li>
-                        <li><a href="{{ url_for('login') }}" class="nav-link">Login</a></li>
+                        <li><a href="{{ url_for('login') }}" class="nav-link">Patient Login</a></li>
+                        <li><a href="{{ url_for('doctor_login') }}" class="nav-link">Doctor Portal</a></li>
                         <li><a href="{{ url_for('register') }}" class="btn btn-primary nav-btn">Get Started</a></li>
                     {% endif %}
                 </ul>
@@ -49,7 +54,7 @@
         <section class="hero">
             <div class="hero-badge">
                 <span class="status-indicator"></span>
-                <span>Privacy-First Digital Health ID</span>
+                <span>CRITICAL MEDICAL ACCESS</span>
             </div>
             
             <h1 class="hero-title">
@@ -58,23 +63,24 @@
             </h1>
 
             <p class="hero-description">
-                MediID is a privacy-focused medical identity system that allows patients to securely store essential emergency medical information and provide controlled access when needed.
+                SahayID is a privacy-first digital medical identity system that allows patients to securely store essential emergency clinical information and provide controlled access to verified doctors and first responders when every second counts.
             </p>
 
             <div class="hero-actions">
-                <a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a>
-                <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-primary">Create Your SahayID</a>
+                <a href="{{ url_for('login') }}" class="btn btn-secondary">Patient Login</a>
+                <a href="{{ url_for('doctor_login') }}" class="btn btn-secondary" style="border-color: var(--secondary); color: var(--secondary);">Doctor Portal</a>
             </div>
         </section>
 
         <!-- Core Feature Cards -->
         <section class="features-section">
             <div class="section-header">
-                <h2 class="section-title">Built for Healthcare Privacy & Emergency Access</h2>
-                <p class="section-subtitle">Every design decision prioritizes patient confidentiality and emergency readiness.</p>
+                <h2 class="section-title">Why SahayID?</h2>
+                <p class="section-subtitle">Engineered for patient privacy, emergency speed, and clinical trust.</p>
             </div>
 
-            <div class="grid-3">
+            <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon-wrapper">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -82,9 +88,9 @@
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
                     </div>
-                    <h3 class="feature-title">Secure</h3>
+                    <h3 class="feature-title">Secure Role-Based Access</h3>
                     <p class="feature-desc">
-                        Patient medical information is protected through authentication and controlled access.
+                        Patient medical information is protected through server-side role authentication, separating patients and verified doctors.
                     </p>
                 </div>
 
@@ -99,7 +105,7 @@
                     </div>
                     <h3 class="feature-title">Emergency Ready</h3>
                     <p class="feature-desc">
-                        A QR-based MediID allows emergency responders to initiate emergency access.
+                        A QR-based SahayID Number allows first responders and doctors to initiate controlled clinical access through the emergency gateway.
                     </p>
                 </div>
 
@@ -111,7 +117,7 @@
                     </div>
                     <h3 class="feature-title">Privacy First</h3>
                     <p class="feature-desc">
-                        Medical information is never stored directly inside the QR code.
+                        Medical information is never stored directly inside the QR code. All requests require authorization and leave a permanent audit trail.
                     </p>
                 </div>
             </div>
@@ -121,14 +127,14 @@
         <section class="features-section" style="margin-top: 3.5rem;">
             <div class="section-header">
                 <h2 class="section-title">How It Works</h2>
-                <p class="section-subtitle">Seven straightforward steps from identity creation to verified emergency access.</p>
+                <p class="section-subtitle">Seven straightforward steps from identity creation to verified clinical access.</p>
             </div>
 
             <div class="how-it-works-grid">
                 <div class="step-card">
                     <div class="step-number">1</div>
-                    <h4 class="step-title">Create your MediID</h4>
-                    <p class="step-desc">Register with your name and emergency credentials.</p>
+                    <h4 class="step-title">Create your SahayID</h4>
+                    <p class="step-desc">Register with your name to receive your unique SahayID Number.</p>
                 </div>
                 <div class="step-card">
                     <div class="step-number">2</div>
@@ -138,12 +144,12 @@
                 <div class="step-card">
                     <div class="step-number">3</div>
                     <h4 class="step-title">Generate your QR</h4>
-                    <p class="step-desc">Obtain a scannable medical ID for lockscreen or print.</p>
+                    <p class="step-desc">Obtain a scannable digital badge for wallet or lockscreen.</p>
                 </div>
                 <div class="step-card">
                     <div class="step-number">4</div>
                     <h4 class="step-title">Responder scans QR</h4>
-                    <p class="step-desc">First responders scan to open the emergency gateway.</p>
+                    <p class="step-desc">First responders or doctors scan to open the emergency gateway.</p>
                 </div>
                 <div class="step-card">
                     <div class="step-number">5</div>
@@ -167,8 +173,8 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
-            <div class="footer-brand">MediID © 2026</div>
-            <div class="footer-note">Confidential & Patient-Controlled Medical Identity</div>
+            <div class="footer-brand">SahayID &copy; 2026</div>
+            <div class="footer-note">CRITICAL MEDICAL ACCESS &bull; Confidential & Patient-Controlled Medical Identity</div>
         </div>
     </footer>
 
