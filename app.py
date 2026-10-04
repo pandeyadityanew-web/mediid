@@ -168,7 +168,8 @@ def get_db_connection():
     """
     Establish and return a database connection.
     Supports PostgreSQL when DATABASE_URL is configured (starts with postgres:// or postgresql://).
-    Defaults to SQLite for local development and testing.
+    Enforces PostgreSQL in production/Vercel environments and requires DATABASE_URL.
+    Defaults to local SQLite solely for local development and offline test suites.
     """
     db_url = os.environ.get('DATABASE_URL')
     if db_url and (db_url.startswith('postgres://') or db_url.startswith('postgresql://')):
@@ -178,6 +179,20 @@ def get_db_connection():
             db_url = 'postgresql://' + db_url[len('postgres://'):]
         raw_conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.DictCursor)
         return PgConnectionWrapper(raw_conn)
+
+    is_production = bool(
+        os.environ.get('VERCEL') or
+        os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or
+        os.environ.get('FLASK_ENV') == 'production' or
+        os.environ.get('ENV') == 'production'
+    )
+    if is_production:
+        raise RuntimeError(
+            "DATABASE_URL environment variable is required in production/Vercel environments. "
+            "SahayID persistent medical identity records require hosted PostgreSQL. "
+            "Please configure your PostgreSQL connection string (postgresql://user:password@host:port/dbname) "
+            "in your deployment environment variables."
+        )
 
     conn = sqlite3.connect(DATABASE_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
@@ -630,8 +645,19 @@ def init_db():
         conn.close()
 
 
-# Ensure database tables and asset folders exist on startup
-init_db()
+# Lazy database initialization for serverless and WSGI environments
+_db_initialized = False
+
+@app.before_request
+def ensure_db_initialized():
+    """
+    Ensure database schema is verified/initialized on first incoming request.
+    Prevents crashing during module import / cold-start in serverless runtimes.
+    """
+    global _db_initialized
+    if not _db_initialized:
+        init_db()
+        _db_initialized = True
 
 
 @app.route('/qr/<medi_id>.png')
