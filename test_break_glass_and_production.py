@@ -112,7 +112,8 @@ def run_break_glass_tests():
     assert p_name.encode() in confirm_resp.data
 
     view_resp = client.post(f'/doctor/patient/{patient_medi_id}/confirm', data={
-        'reason': 'Emergency department admission'
+        'reason': 'Emergency department admission',
+        'direct_confirm': '1'
     }, follow_redirects=True)
     assert view_resp.status_code == 200
     assert b"B+" in view_resp.data

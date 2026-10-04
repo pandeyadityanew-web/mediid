@@ -351,7 +351,7 @@ The database seeding script creates two fully configured accounts ready for live
 ### Demonstration Walkthrough
 1. **Patient Portal**:
    - Sign in as `alex.demo@mediid.local` at `/login`.
-   - Inspect the patient dashboard, 100% profile completion bar, printable wallet card, and Information Access History.
+   - Inspect the patient dashboard, 100% profile completion bar, printable wallet card, incoming physician access requests, and Information Access History.
 2. **Emergency Break-Glass Gateway**:
    - Open a private/incognito window (simulating a paramedic scanning a QR code).
    - Navigate to: `http://127.0.0.1:5000/emergency/MED-DEMO2026`.
@@ -360,12 +360,17 @@ The database seeding script creates two fully configured accounts ready for live
    - Complete verification (Responder Name: `Paramedic Sarah`, Organization: `Metro EMS Unit 4`, Reason: `Roadside acute trauma`).
    - Check the mandatory emergency confirmation checkbox and submit.
    - Review the verified critical emergency tier with active 10-minute countdown (vitals, allergies, conditions, medications, contacts; surgical and private notes suppressed).
-3. **Doctor Clinical Portal Workflow**:
+3. **Doctor Clinical Portal & Patient Consent + OTP Workflow**:
    - Open another browser tab and navigate to `/doctor/login`.
    - Sign in as `doctor@sahayid.demo` / `DemoDoctor123!`.
    - Under **Access Patient Record**, enter SahayID Number `MED-DEMO2026` (or scan the QR link).
    - Review the **Access Confirmation** screen displaying limited identity and privacy notices.
-   - Click **Confirm and Access Full Record** to view the full read-only clinical record (including surgical history and consultation notes).
+   - Click **Request Patient Consent & Initiate OTP Verification**.
+   - Doctor UI enters live polling mode on `/doctor/access-request/<request_token>`.
+   - In the patient browser tab, reload `/dashboard` and view the pending request from Dr. Arjun Mehta.
+   - Click **Approve (Generate OTP)**. A secure 6-digit one-time passcode is generated and displayed on the patient screen.
+   - In the doctor tab, enter the 6-digit OTP code and submit verification.
+   - Doctor is granted temporary 30-minute access to the full medical record (including surgical history and consultation notes).
 4. **Audit Trail Verification**:
    - Switch back to the Patient Dashboard tab and refresh.
    - Observe both access events in the **Information Access History** table:
@@ -374,35 +379,37 @@ The database seeding script creates two fully configured accounts ready for live
 
 ---
 
-## 10. Automated Test Battery (112 Checks Verified)
+## 10. Automated Test Battery (127 Checks Verified)
 
-The project includes 8 modular automated test suites providing 100% verification across all functional, security, and integration layers:
+The project includes 9 modular automated test suites providing 100% verification across all functional, security, and integration layers:
 
 ```bash
 # Execute individual test suites
-python test_verification.py
-python test_part3.py
-python test_part4.py
-python test_part5.py
-python test_final.py
+python test_authentication.py
+python test_patient_access.py
+python test_qr.py
+python test_emergency_access.py
+python test_integration.py
+python test_doctor_access.py
 python test_roles.py
-python test_doctor_patient_access.py
 python test_break_glass_and_production.py
+python test_consent_otp.py
 ```
 
 ### Test Coverage Summary
 
 | Test Suite | Focus Area | Checks | Status |
 |---|---|---|---|
-| `test_verification.py` | Database schema, foreign keys, password hashing, registration, and dual login. | 9 / 9 | PASS |
-| `test_part3.py` | Patient dashboard, medical profile updates, emergency contacts, IDOR defenses. | 10 / 10 | PASS |
-| `test_part4.py` | QR code generation, zero-knowledge payload validation, download isolation. | 9 / 9 | PASS |
-| `test_part5.py` | Emergency verification gateway, ephemeral tokens, SHA-256 token hashing, audit logs. | 13 / 13 | PASS |
-| `test_final.py` | Full end-to-end integration, 7-step landing page, security headers, branded error pages. | 18 / 18 | PASS |
+| `test_authentication.py` | Database schema, foreign keys, password hashing, registration, and dual login. | 9 / 9 | PASS |
+| `test_patient_access.py` | Patient dashboard, medical profile updates, emergency contacts, IDOR defenses. | 10 / 10 | PASS |
+| `test_qr.py` | QR code generation, zero-knowledge payload validation, download isolation. | 9 / 9 | PASS |
+| `test_emergency_access.py` | Emergency verification gateway, ephemeral tokens, SHA-256 token hashing, audit logs. | 13 / 13 | PASS |
+| `test_integration.py` | Full end-to-end integration, process path timeline, security headers, branded error pages. | 18 / 18 | PASS |
+| `test_doctor_access.py` | Doctor lookup, confirmation gate, QR routing, recent access isolation, read-only view. | 18 / 18 | PASS |
 | `test_roles.py` | Doctor role authentication, session isolation, doctor verification gate, audit logs. | 15 / 15 | PASS |
-| `test_doctor_patient_access.py` | Secure lookup, invalid ID handling, confirmation gate, QR routing, recent access isolation. | 18 / 18 | PASS |
 | `test_break_glass_and_production.py` | Break-glass validation, emergency data tiering, dynamic QR, environment config, DB abstraction. | 20 / 20 | PASS |
-| **Total** | **Comprehensive Full-Spectrum Verification** | **112 / 112** | **100% PASS** |
+| `test_consent_otp.py` | Patient consent approval/denial, 6-digit OTP generation, SHA-256 hash at rest, rate limiting, and 30m authorization. | 15 / 15 | PASS |
+| **Total** | **Comprehensive Full-Spectrum Verification** | **127 / 127** | **100% PASS** |
 
 ---
 

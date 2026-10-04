@@ -8,33 +8,35 @@
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
     <meta property="og:title" content="SahayID - Critical Medical Access">
-    <meta property="og:description" content="Secure digital medical identity system connecting patients, verified doctors, and emergency responders.">
+    <meta property="og:description" content="Privacy-first digital medical identity and authorized clinical gateway.">
     <meta property="og:image" content="{{ url_for('static', filename='images/sahayid-logo.jpg') }}">
 </head>
 <body>
-    <!-- Navigation Header -->
+    <!-- Top Navigation -->
     <header class="navbar">
         <div class="nav-container">
             <a href="{{ url_for('index') }}" class="brand-logo-wrap">
                 <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
                 <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                <span class="brand-tag-inline">Critical Medical Access</span>
                 <span style="display:none;">MediID</span>
             </a>
             <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
             <nav>
                 <ul class="nav-menu" id="navMenu">
+                    <li><a href="#about" class="nav-link">About</a></li>
+                    <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+                    <li><a href="#patient-journey" class="nav-link">For Patients</a></li>
+                    <li><a href="#doctor-journey" class="nav-link">For Doctors</a></li>
                     {% if session.get('role') == 'doctor' %}
-                        <li><a href="{{ url_for('doctor_dashboard') }}" class="nav-link">Doctor Dashboard</a></li>
+                        <li><a href="{{ url_for('doctor_dashboard') }}" class="btn btn-primary nav-btn">Doctor Dashboard</a></li>
                         <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
                     {% elif session.get('role') == 'patient' %}
-                        <li><a href="{{ url_for('dashboard') }}" class="nav-link">Patient Dashboard</a></li>
-                        <li><a href="{{ url_for('medical_profile') }}" class="nav-link">Medical Profile</a></li>
-                        <li><a href="{{ url_for('emergency_contacts') }}" class="nav-link">Emergency Contacts</a></li>
+                        <li><a href="{{ url_for('dashboard') }}" class="btn btn-primary nav-btn">Patient Dashboard</a></li>
                         <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
                     {% else %}
-                        <li><a href="{{ url_for('index') }}" class="nav-link active">Home</a></li>
-                        <li><a href="{{ url_for('login') }}" class="nav-link">Patient Login</a></li>
-                        <li><a href="{{ url_for('doctor_login') }}" class="nav-link">Doctor Portal</a></li>
+                        <li><a href="{{ url_for('login') }}" class="btn btn-secondary nav-btn">Patient Login</a></li>
+                        <li><a href="{{ url_for('doctor_login') }}" class="btn btn-secondary nav-btn" style="border-color: #0284c7; color: #0284c7;">Doctor Login</a></li>
                         <li><a href="{{ url_for('register') }}" class="btn btn-primary nav-btn">Get Started</a></li>
                     {% endif %}
                 </ul>
@@ -42,148 +44,309 @@
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="main-wrapper">
-        <!-- Flash Message Alerts -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-
-        <!-- Hero Section with Background ECG Wave & Official SahayID Logo -->
-        <section class="hero">
-            <div class="hero-brand-container">
-                <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="hero-brand-logo">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
             </div>
+        {% endif %}
+    {% endwith %}
 
-            <div class="hero-badge">
-                <span class="status-indicator"></span>
-                <span>CRITICAL MEDICAL ACCESS</span>
-            </div>
-            
-            <h1 class="hero-title">
-                Your Medical Identity.
-                <span class="hero-tagline">Available When It Matters.</span>
-            </h1>
-
-            <p class="hero-description">
-                SahayID is a privacy-first digital medical identity system that allows patients to securely store essential emergency clinical information and provide controlled access to verified doctors and first responders when every second counts.
-            </p>
-
-            <div class="hero-actions">
-                <a href="{{ url_for('register') }}" class="btn btn-primary">Create Your SahayID</a>
-                <a href="{{ url_for('login') }}" class="btn btn-secondary">Patient Login</a>
-                <a href="{{ url_for('doctor_login') }}" class="btn btn-secondary" style="border-color: #38bdf8; color: #38bdf8;">Doctor Portal</a>
-            </div>
-        </section>
-
-        <!-- Core Feature Cards -->
-        <section class="features-section">
-            <div class="section-header">
-                <h2 class="section-title">Why SahayID?</h2>
-                <p class="section-subtitle">Engineered for patient privacy, emergency speed, and clinical trust.</p>
-            </div>
-
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
+    <!-- Asymmetric Two-Column Hero (Left: Text/CTA, Right: Video) -->
+    <section class="hero-section-wrap">
+        <div class="hero-background-pattern"></div>
+        <div class="hero-container">
+            <div class="hero-grid">
+                <!-- Left Column: Branding, Value Proposition & Actions -->
+                <div class="hero-content">
+                    <div class="hero-brand-tag">
+                        <span class="hero-pulse-dot"></span>
+                        <span>CRITICAL MEDICAL ACCESS</span>
                     </div>
-                    <h3 class="feature-title">Secure Role-Based Access</h3>
-                    <p class="feature-desc">
-                        Patient medical information is protected through server-side role authentication, separating patients and verified doctors.
-                    </p>
-                </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
+                    <h1 class="hero-heading">
+                        Your medical identity, <br>
+                        <span class="hero-heading-highlight">available when it matters most.</span>
+                    </h1>
+
+                    <p class="hero-lead-text">
+                        SahayID allows patients to securely manage their digital medical identity, share vital clinical records under strict consent and OTP verification with licensed physicians, and provide life-saving break-glass access to first responders in emergency situations.
+                    </p>
+
+                    <div class="hero-cta-group">
+                        <a href="{{ url_for('login') }}" class="btn btn-primary">Patient Login</a>
+                        <a href="{{ url_for('doctor_login') }}" class="btn btn-secondary">Doctor Portal</a>
+                        <a href="#how-it-works" class="btn btn-secondary">How It Works</a>
                     </div>
-                    <h3 class="feature-title">Emergency Ready</h3>
-                    <p class="feature-desc">
-                        A QR-based SahayID Number allows first responders and doctors to initiate controlled clinical access through the emergency gateway.
-                    </p>
-                </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        </svg>
+                    <div class="hero-meta-points">
+                        <div class="hero-meta-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                            <span>Patient-Controlled Consent</span>
+                        </div>
+                        <div class="hero-meta-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                            <span>OTP-Verified Clinical Access</span>
+                        </div>
+                        <div class="hero-meta-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                            <span>Immutable Audit Logging</span>
+                        </div>
                     </div>
-                    <h3 class="feature-title">Privacy First</h3>
-                    <p class="feature-desc">
-                        Medical information is never stored directly inside the QR code. All requests require authorization and leave a permanent audit trail.
+                </div>
+
+                <!-- Right Column: User-Supplied Product Video -->
+                <div class="hero-media-wrapper">
+                    <video autoplay muted loop playsinline class="hero-video-player" poster="{{ url_for('static', filename='images/sahayid-logo.jpg') }}">
+                        <source src="{{ url_for('static', filename='video/sahayid.mp4') }}" type="video/mp4">
+                        <source src="{{ url_for('static', filename='videos/sahayid.mp4') }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About SahayID (Split Layout) -->
+    <section class="about-section" id="about">
+        <div class="section-wrapper">
+            <div class="split-layout">
+                <!-- Left: Title & Explanatory Context -->
+                <div>
+                    <div class="section-eyebrow">Platform Architecture</div>
+                    <h2 class="section-title">Patient-Controlled Medical Identity & Clinical Governance</h2>
+                    <p class="section-desc-lead">
+                        During acute medical crises, healthcare professionals face an immediate information vacuum: blood types, life-threatening drug allergies, and active medications are often unknown. Naive solutions print medical data on public QR cards, destroying patient privacy.
                     </p>
+                    <p class="section-desc-lead">
+                        SahayID bridges this gap through a cryptographic zero-knowledge architecture. Physical QR badges store strictly an unguessable routing URL. Normal doctor inquiries require active patient consent and OTP validation, while emergency responders use a time-limited, monitored break-glass gateway.
+                    </p>
+                    <div class="academic-badge-note">
+                        <strong>Academic Prototype Notice:</strong> SahayID is engineered as a research and demonstration prototype for secure healthcare identity access, consent models, and clinical auditability.
+                    </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- How It Works Section -->
-        <section class="features-section" style="margin-top: 3.5rem;">
-            <div class="section-header">
-                <h2 class="section-title">How It Works</h2>
-                <p class="section-subtitle">Seven straightforward steps from identity creation to verified clinical access.</p>
+                <!-- Right: Four Core Pillars Grid -->
+                <div class="capabilities-grid">
+                    <div class="capability-card">
+                        <div class="capability-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </div>
+                        <h3 class="capability-title">Zero-Knowledge Routing</h3>
+                        <p class="capability-text">Physical QR cards encode solely the gateway link. Zero medical data is embedded in the physical card payload.</p>
+                    </div>
+
+                    <div class="capability-card">
+                        <div class="capability-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                        <h3 class="capability-title">Consent + OTP Verification</h3>
+                        <p class="capability-text">Doctors must request access; patients approve on their dashboard and share a 6-digit one-time passcode to authorize review.</p>
+                    </div>
+
+                    <div class="capability-card">
+                        <div class="capability-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        </div>
+                        <h3 class="capability-title">Emergency Break-Glass</h3>
+                        <p class="capability-text">Paramedics in life-threatening scenarios can access critical vitals only, backed by mandatory responder declaration and audit logs.</p>
+                    </div>
+
+                    <div class="capability-card">
+                        <div class="capability-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </div>
+                        <h3 class="capability-title">Bilateral Audit Trail</h3>
+                        <p class="capability-text">Every doctor access, consent event, and emergency break-glass is immutably logged with timestamp, identity, and network IP.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How SahayID Works (Animated Process Path) -->
+    <section class="how-it-works-section" id="how-it-works">
+        <div class="section-wrapper">
+            <div style="text-align: left; max-width: 600px;">
+                <div class="section-eyebrow">Workflow & Lifecycle</div>
+                <h2 class="section-title">How SahayID Works</h2>
+                <p class="section-desc-lead">A five-stage lifecycle balancing patient sovereignty with emergency readiness.</p>
             </div>
 
-            <div class="how-it-works-grid">
-                <div class="step-card">
-                    <div class="step-number">1</div>
-                    <h4 class="step-title">Create your SahayID</h4>
-                    <p class="step-desc">Register with your name to receive your unique SahayID Number.</p>
+            <div class="process-flow-container">
+                <div class="process-vertical-track"></div>
+                <div class="process-traveling-dot"></div>
+
+                <div class="process-step-node">
+                    <div class="process-node-number">1</div>
+                    <h3 class="process-node-title">Create Your SahayID</h3>
+                    <p class="process-node-desc">Register securely with your basic credentials to receive your unique collision-resistant SahayID Number (<code>MED-XXXXXXXX</code>).</p>
                 </div>
-                <div class="step-card">
-                    <div class="step-number">2</div>
-                    <h4 class="step-title">Add medical information</h4>
-                    <p class="step-desc">Enter blood group, critical allergies, and medications.</p>
+
+                <div class="process-step-node">
+                    <div class="process-node-number">2</div>
+                    <h3 class="process-node-title">Add Medical Information</h3>
+                    <p class="process-node-desc">Populate your medical profile with blood group, allergies, chronic conditions, active prescriptions, surgical history, and next-of-kin contacts.</p>
                 </div>
-                <div class="step-card">
-                    <div class="step-number">3</div>
-                    <h4 class="step-title">Generate your QR</h4>
-                    <p class="step-desc">Obtain a scannable digital badge for wallet or lockscreen.</p>
+
+                <div class="process-step-node">
+                    <div class="process-node-number">3</div>
+                    <h3 class="process-node-title">Get Your Secure QR Badge</h3>
+                    <p class="process-node-desc">Download your scannable QR card or print your physical wallet badge. The QR contains solely routing parameters—zero health data.</p>
                 </div>
-                <div class="step-card">
-                    <div class="step-number">4</div>
-                    <h4 class="step-title">Responder scans QR</h4>
-                    <p class="step-desc">First responders or doctors scan to open the emergency gateway.</p>
+
+                <div class="process-step-node">
+                    <div class="process-node-number">4</div>
+                    <h3 class="process-node-title">Authorized Clinical Access (Consent + OTP)</h3>
+                    <p class="process-node-desc">When visiting a clinic or hospital, your doctor scans your QR or enters your SahayID. You approve the request on your dashboard and provide the 6-digit OTP to grant temporary access.</p>
                 </div>
-                <div class="step-card">
-                    <div class="step-number">5</div>
-                    <h4 class="step-title">Verify emergency purpose</h4>
-                    <p class="step-desc">Responders state identity and confirm medical purpose.</p>
-                </div>
-                <div class="step-card">
-                    <div class="step-number">6</div>
-                    <h4 class="step-title">Temporary access granted</h4>
-                    <p class="step-desc">10-minute temporary cryptographic token issued.</p>
-                </div>
-                <div class="step-card">
-                    <div class="step-number">7</div>
-                    <h4 class="step-title">Access is logged</h4>
-                    <p class="step-desc">Audit entry recorded in the patient's dashboard.</p>
+
+                <div class="process-step-node">
+                    <div class="process-node-number">5</div>
+                    <h3 class="process-node-title">Emergency Break-Glass When Needed</h3>
+                    <p class="process-node-desc">If incapacitated during an emergency, first responders use the audited break-glass portal to view essential vitals and contacts only, while private records remain protected.</p>
                 </div>
             </div>
-        </section>
-    </main>
+        </div>
+    </section>
+
+    <!-- Patient Journey & Doctor Journey -->
+    <section class="journeys-section" id="patient-journey">
+        <div class="section-wrapper">
+            <div style="text-align: left; max-width: 600px;">
+                <div class="section-eyebrow">Role Workflows</div>
+                <h2 class="section-title">Patient vs. Doctor Experience</h2>
+                <p class="section-desc-lead">Structured boundaries ensuring patients retain authority while doctors receive verified data.</p>
+            </div>
+
+            <div class="journeys-grid">
+                <!-- Patient Journey -->
+                <div class="journey-card">
+                    <span class="journey-badge patient">Patient Journey</span>
+                    <h3 class="journey-title">Patient Governance & Control</h3>
+                    <ul class="journey-steps-list">
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">1</span>
+                            <span>Create account & establish unique SahayID</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">2</span>
+                            <span>Complete clinical profile & emergency contacts</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">3</span>
+                            <span>Access digital QR badge & printable wallet card</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">4</span>
+                            <span>Present QR or SahayID Number during clinical consultation</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">5</span>
+                            <span>Review incoming doctor access requests on dashboard</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">6</span>
+                            <span>Approve request & share 6-digit OTP with physician</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">7</span>
+                            <span>Monitor full access history & audit log entries</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Doctor Journey -->
+                <div class="journey-card" id="doctor-journey">
+                    <span class="journey-badge doctor">Doctor Journey</span>
+                    <h3 class="journey-title">Physician Clinical Workflow</h3>
+                    <ul class="journey-steps-list">
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">1</span>
+                            <span>Sign in to verified Doctor Portal (<code>DOC-XXXXXXXX</code>)</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">2</span>
+                            <span>Enter patient SahayID Number or scan patient QR code</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">3</span>
+                            <span>Patient identified on limited confirmation screen (Zero clinical data)</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">4</span>
+                            <span>Submit formal access request with clinical reason</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">5</span>
+                            <span>Patient reviews & approves request from their portal</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">6</span>
+                            <span>Doctor enters patient's 6-digit OTP code to verify consent</span>
+                        </li>
+                        <li class="journey-step-item">
+                            <span class="journey-step-idx">7</span>
+                            <span>Full authorized medical record displayed for 30 minutes</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Footer -->
     <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-brand">SahayID &copy; 2026</div>
-            <div class="footer-note">CRITICAL MEDICAL ACCESS &bull; Confidential & Patient-Controlled Medical Identity</div>
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand-logo-wrap" style="margin-bottom: 0.75rem;">
+                        <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" style="width: 32px; height: 32px; border-radius: 6px;">
+                        <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                    </div>
+                    <p class="footer-desc">
+                        Privacy-centric digital medical identity and clinical access management infrastructure. Engineered for emergency triage speed, patient consent, and verified doctor authorization.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="footer-col-title">Portals</h4>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('login') }}" class="footer-link">Patient Sign In</a></li>
+                        <li><a href="{{ url_for('register') }}" class="footer-link">Patient Registration</a></li>
+                        <li><a href="{{ url_for('doctor_login') }}" class="footer-link">Doctor Portal</a></li>
+                        <li><a href="{{ url_for('doctor_register') }}" class="footer-link">Doctor Registration</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="footer-col-title">Architecture</h4>
+                    <ul class="footer-links">
+                        <li><a href="#about" class="footer-link">Zero-Knowledge QR</a></li>
+                        <li><a href="#how-it-works" class="footer-link">Consent + OTP Model</a></li>
+                        <li><a href="#patient-journey" class="footer-link">Emergency Break-Glass</a></li>
+                        <li><a href="#about" class="footer-link">Audit Trail Integrity</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="footer-col-title">Compliance & Scope</h4>
+                    <ul class="footer-links">
+                        <li><span class="footer-link">Academic Research Prototype</span></li>
+                        <li><span class="footer-link">Simulation Environment</span></li>
+                        <li><span class="footer-link">SHA-256 Token Protection</span></li>
+                        <li><span class="footer-link">Role-Based Access Control</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div>&copy; 2026 SahayID. All rights reserved. &bull; Tagline: <strong>CRITICAL MEDICAL ACCESS</strong></div>
+                <div>Academic Prototype &bull; Demonstrating Consent, Doctor Verification & Emergency Access</div>
+            </div>
         </div>
     </footer>
 

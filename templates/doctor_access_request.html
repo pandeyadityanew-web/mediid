@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Request Status - SahayID</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+</head>
+<body>
+    <!-- Top Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('doctor_dashboard') }}" class="brand-logo-wrap">
+                <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
+                <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                <span class="brand-tag-inline">Doctor Portal</span>
+            </a>
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="{{ url_for('doctor_dashboard') }}" class="nav-link">Doctor Dashboard</a></li>
+                    <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-wrapper" style="max-width: 920px; margin: 2rem auto; padding: 0 1.5rem;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages" style="padding: 0; margin-bottom: 1.5rem;">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="table-card">
+            <div class="table-card-header">
+                <div>
+                    <h2 class="table-card-title">Patient Clinical Authorization Gateway</h2>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">Normal Doctor Access &bull; Patient Consent + OTP Verification</p>
+                </div>
+                <div>
+                    {% if req.status == 'PENDING' %}
+                        <span class="status-badge badge-pending">Consent Pending</span>
+                    {% elif req.status == 'APPROVED' %}
+                        <span class="status-badge badge-approved">Consent Granted (Enter OTP)</span>
+                    {% elif req.status == 'VERIFIED' %}
+                        <span class="status-badge badge-verified">Authorized</span>
+                    {% elif req.status == 'DENIED' %}
+                        <span class="status-badge badge-denied">Consent Denied</span>
+                    {% elif req.status == 'EXPIRED' %}
+                        <span class="status-badge badge-expired">Expired</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="padding: 1.75rem;">
+                <!-- Patient & Request Metadata Summary -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; background-color: var(--bg-subtle); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.75rem;">
+                    <div>
+                        <div class="form-hint" style="text-transform: uppercase; font-weight: 700;">Patient Name</div>
+                        <div style="font-weight: 700; color: var(--navy-900);">{{ patient.full_name }}</div>
+                    </div>
+                    <div>
+                        <div class="form-hint" style="text-transform: uppercase; font-weight: 700;">SahayID Number</div>
+                        <div style="font-family: var(--font-mono); font-weight: 700; color: var(--primary);">{{ patient.medi_id }}</div>
+                    </div>
+                    <div>
+                        <div class="form-hint" style="text-transform: uppercase; font-weight: 700;">Requesting Physician</div>
+                        <div style="font-weight: 600;">Dr. {{ doctor.full_name }}</div>
+                    </div>
+                    <div>
+                        <div class="form-hint" style="text-transform: uppercase; font-weight: 700;">Stated Reason</div>
+                        <div style="font-size: 0.875rem; color: var(--text-main);">{{ req.reason }}</div>
+                    </div>
+                </div>
+
+                <!-- STATE 1: PENDING PATIENT APPROVAL -->
+                {% if req.status == 'PENDING' %}
+                    <div id="pendingRequestTracker" data-status="PENDING" data-poll-url="{{ url_for('doctor_access_request_status', request_token=req.request_token) }}" style="text-align: center; padding: 2rem 1rem;">
+                        <div style="width: 56px; height: 56px; border-radius: 50%; background-color: var(--warning-light); color: var(--warning); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <h3 style="font-size: 1.35rem; font-weight: 800; color: var(--navy-900); margin-bottom: 0.5rem;">Access Request Pending Patient Approval</h3>
+                        <p style="font-size: 0.925rem; color: var(--text-muted); max-width: 540px; margin: 0 auto 1.5rem; line-height: 1.6;">
+                            An authorization request has been dispatched to <strong>{{ patient.full_name }}</strong>'s dashboard. Please ask the patient to approve the request on their device and provide the 6-digit one-time passcode (OTP).
+                        </p>
+                        <div style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-light); margin-bottom: 1.5rem;">
+                            <span class="hero-pulse-dot"></span>
+                            <span>Live polling active &bull; This screen updates automatically once approved</span>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('doctor_access_request_status', request_token=req.request_token) }}" class="btn btn-secondary btn-sm">Refresh Status</a>
+                            <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary btn-sm" style="margin-left: 0.5rem;">Return to Dashboard</a>
+                        </div>
+                    </div>
+
+                <!-- STATE 2: APPROVED - ENTER OTP -->
+                {% elif req.status == 'APPROVED' %}
+                    <div style="background-color: var(--success-light); border: 2px solid var(--success-border); border-radius: var(--radius-lg); padding: 1.75rem; text-align: center;">
+                        <div style="width: 56px; height: 56px; border-radius: 50%; background-color: #dcfce7; color: var(--success); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <h3 style="font-size: 1.35rem; font-weight: 800; color: #14532d; margin-bottom: 0.5rem;">Patient Consent Granted!</h3>
+                        <p style="font-size: 0.925rem; color: #166534; max-width: 500px; margin: 0 auto 1.5rem;">
+                            The patient has approved clinical access. Enter the <strong>6-digit verification OTP</strong> provided by the patient below to unlock the authorized medical record.
+                        </p>
+
+                        <form action="{{ url_for('doctor_verify_otp', request_token=req.request_token) }}" method="POST" style="max-width: 320px; margin: 0 auto;">
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label for="otpCodeInput" class="form-label" style="font-size: 0.85rem; color: #14532d;">6-Digit Patient Verification Code (OTP)</label>
+                                <input type="text" id="otpCodeInput" name="otp" class="form-control" maxlength="6" placeholder="123456" required autofocus style="font-family: var(--font-mono); font-size: 1.75rem; text-align: center; letter-spacing: 0.35rem; font-weight: 800;">
+                            </div>
+                            <button type="submit" class="btn btn-success btn-block" style="font-size: 1rem; padding: 0.75rem;">Verify OTP & Access Record</button>
+                        </form>
+
+                        <div style="font-size: 0.75rem; color: #166534; margin-top: 1rem;">
+                            <span>One-Time Use &bull; Valid for 5 minutes &bull; Attempts remaining: {{ 5 - (req.attempts or 0) }}</span>
+                        </div>
+                    </div>
+
+                <!-- STATE 3: DENIED -->
+                {% elif req.status == 'DENIED' %}
+                    <div style="background-color: var(--emergency-light); border: 1px solid var(--emergency-border); border-radius: var(--radius-lg); padding: 2rem; text-align: center;">
+                        <div style="width: 56px; height: 56px; border-radius: 50%; background-color: #fee2e2; color: var(--emergency); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        </div>
+                        <h3 style="font-size: 1.35rem; font-weight: 800; color: #991b1b; margin-bottom: 0.5rem;">Access Request Denied by Patient</h3>
+                        <p style="font-size: 0.925rem; color: #b91c1c; max-width: 500px; margin: 0 auto 1.5rem;">
+                            The patient has declined this clinical access request. Patient records remain strictly shielded. This denial event has been recorded in the audit trail.
+                        </p>
+                        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">Return to Doctor Dashboard</a>
+                    </div>
+
+                <!-- STATE 4: EXPIRED -->
+                {% elif req.status == 'EXPIRED' %}
+                    <div style="background-color: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 2rem; text-align: center;">
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--navy-900); margin-bottom: 0.5rem;">Access Request Expired</h3>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); max-width: 480px; margin: 0 auto 1.5rem;">
+                            The time window for patient consent or OTP verification has elapsed. Please create a new access request.
+                        </p>
+                        <a href="{{ url_for('doctor_patient_confirm', medi_id=patient.medi_id) }}" class="btn btn-primary">Initiate New Access Request</a>
+                    </div>
+
+                <!-- STATE 5: VERIFIED -->
+                {% elif req.status == 'VERIFIED' %}
+                    <div style="background-color: var(--success-light); border: 1px solid var(--success-border); border-radius: var(--radius-lg); padding: 2rem; text-align: center;">
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: #14532d; margin-bottom: 0.5rem;">Clinical Record Access Authorized</h3>
+                        <p style="font-size: 0.9rem; color: #166534; margin-bottom: 1.5rem;">
+                            Consent verified via OTP. You have active temporary authorization to inspect {{ patient.full_name }}'s medical record.
+                        </p>
+                        <a href="{{ url_for('doctor_patient_view', medi_id=patient.medi_id) }}" class="btn btn-success">View Authorized Medical Record</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

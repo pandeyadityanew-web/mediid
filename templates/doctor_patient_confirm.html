@@ -9,19 +9,19 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
 </head>
 <body>
-    <!-- Authenticated Doctor Navigation Header -->
-    <header class="navbar" style="border-bottom: 2px solid var(--secondary);">
+    <!-- Top Navigation -->
+    <header class="navbar">
         <div class="nav-container">
             <a href="{{ url_for('doctor_dashboard') }}" class="brand-logo-wrap">
                 <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
                 <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                <span class="brand-tag-inline">Doctor Portal</span>
                 <span style="display:none;">MediID</span>
             </a>
-            <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
             <nav>
-                <ul class="nav-menu" id="navMenu">
+                <ul class="nav-menu">
                     <li><a href="{{ url_for('doctor_dashboard') }}" class="nav-link">Doctor Dashboard</a></li>
-                    <li><span class="doctor-badge-chip">{{ doctor['full_name'] }}</span></li>
+                    <li><span class="status-badge badge-doctor">Dr. {{ doctor['full_name'] }}</span></li>
                     <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
                 </ul>
             </nav>
@@ -29,11 +29,10 @@
     </header>
 
     <!-- Main Content -->
-    <main class="main-wrapper">
-        <!-- Flash Message Alerts -->
+    <main class="main-wrapper" style="max-width: 720px; margin: 2rem auto; padding: 0 1.5rem;">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="flash-messages">
+                <div class="flash-messages" style="padding: 0; margin-bottom: 1.5rem;">
                     {% for category, message in messages %}
                         <div class="alert alert-{{ category }}">{{ message }}</div>
                     {% endfor %}
@@ -41,66 +40,55 @@
             {% endif %}
         {% endwith %}
 
-        <div class="auth-container" style="max-width: 640px; margin: 2rem auto;">
-            <div class="auth-card" style="border-top: 4px solid var(--secondary);">
-                
-                <!-- Status & Header -->
-                <div class="auth-header" style="text-align: center; margin-bottom: 1.5rem;">
-                    <div style="width: 56px; height: 56px; border-radius: 50%; background-color: var(--secondary-light); color: var(--secondary); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <polyline points="16 11 18 13 22 9"></polyline>
-                        </svg>
-                    </div>
-                    <h1 class="auth-title" style="color: var(--text-main); font-size: 1.75rem;">Patient Found</h1>
-                    <p class="auth-subtitle">Verify patient identity before requesting full authorized medical record access.</p>
+        <div class="table-card">
+            <div class="table-card-header" style="background-color: var(--primary-light);">
+                <div>
+                    <h2 class="table-card-title" style="color: var(--navy-900);">Patient Found &bull; Confirm Patient Access</h2>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">Verify patient demographics and submit clinical authorization request.</p>
                 </div>
+                <span class="status-badge badge-doctor">Practitioner Review</span>
+            </div>
 
-                <!-- Limited Patient Summary Card -->
-                <div style="background-color: var(--bg-page); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
-                    <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 0.75rem;">
-                        Patient Summary
-                    </span>
+            <div style="padding: 1.75rem;">
+                <!-- Limited Patient Summary -->
+                <div style="background-color: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        Patient Identification
+                    </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                         <div>
-                            <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Full Name</span>
-                            <strong style="font-size: 1.15rem; color: var(--text-main);">{{ patient['full_name'] }}</strong>
+                            <div class="form-hint">Full Name</div>
+                            <div style="font-size: 1.15rem; font-weight: 700; color: var(--navy-900);">{{ patient['full_name'] }}</div>
                         </div>
                         <div>
-                            <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">SahayID Number</span>
-                            <span class="medi-id-chip" style="font-size: 0.95rem; font-family: monospace; display: inline-block; margin-top: 0.2rem;">
-                                {{ patient['medi_id'] }}
-                            </span>
+                            <div class="form-hint">SahayID Number</div>
+                            <div style="font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: var(--primary);">{{ patient['medi_id'] }}</div>
                         </div>
                         <div>
-                            <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Date of Birth</span>
-                            <strong style="color: var(--text-main);">{{ date_of_birth or 'Not specified' }}</strong>
+                            <div class="form-hint">Date of Birth</div>
+                            <div style="font-weight: 600; color: var(--text-main);">{{ date_of_birth or 'Not specified' }}</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Doctor Identity Confirmation Card -->
-                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
-                    <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 0.5rem;">
-                        Accessing Practitioner Credentials
-                    </span>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                        You are accessing this patient's medical information as:
-                    </p>
-                    <div style="font-size: 1.05rem; font-weight: 800; color: var(--secondary);">
-                        {{ doctor['full_name'] }}
+                <!-- Accessing Practitioner Credentials -->
+                <div style="background-color: #ffffff; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem;">
+                        Accessing Physician Credentials
                     </div>
-                    <div style="font-size: 0.875rem; color: var(--text-main); margin-top: 0.25rem;">
+                    <div style="font-size: 1.05rem; font-weight: 800; color: var(--navy-900);">
+                        Dr. {{ doctor['full_name'] }}
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">
                         {{ doctor['specialization'] }} &bull; {{ doctor['hospital_or_clinic'] }}
                     </div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
-                        Doctor ID: <strong style="font-family: monospace;">{{ doctor['doctor_id'] }}</strong> | Reg: <strong>{{ doctor['registration_number'] }}</strong>
+                    <div style="font-size: 0.8rem; color: var(--text-light); margin-top: 0.25rem;">
+                        Doctor ID: <strong style="font-family: var(--font-mono);">{{ doctor['doctor_id'] }}</strong> | Medical Registration: <strong>{{ doctor['registration_number'] }}</strong>
                     </div>
                 </div>
 
-                <!-- Prominent Privacy & Audit Notice -->
-                <div class="alert alert-info" style="margin-bottom: 1.5rem; background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 1rem 1.25rem; border-radius: var(--radius-md); display: flex; align-items: flex-start; gap: 0.75rem;">
+                <!-- Audit and Consent Notice -->
+                <div class="alert alert-info" style="margin-bottom: 1.5rem; background-color: var(--primary-light); border-color: var(--primary-border); color: #0369a1; display: flex; align-items: flex-start; gap: 0.75rem;">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                     </svg>
@@ -108,47 +96,47 @@
                         <strong style="display: block; font-size: 0.95rem; margin-bottom: 0.25rem;">
                             Patient information access is logged and visible in the patient's access history.
                         </strong>
-                        <span style="font-size: 0.85rem; line-height: 1.5; color: #14532d; display: block;">
-                            In accordance with clinical data governance, this access event will be permanently stamped in the patient's audit log with your name, institution, timestamp, and network IP.
+                        <span style="font-size: 0.825rem; line-height: 1.5; display: block;">
+                            Submitting this request will dispatch an authorization notice to the patient's dashboard. Upon approval, you will enter the 6-digit OTP code provided by the patient to unlock full clinical records for 30 minutes.
                         </span>
                     </div>
                 </div>
 
-                <!-- Confirmation Action Form -->
+                <!-- Action Form -->
                 <form action="{{ url_for('doctor_patient_confirm', medi_id=patient['medi_id']) }}" method="POST">
-                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <div class="form-group">
                         <label for="reason" class="form-label">Clinical Reason for Access</label>
                         <input 
                             type="text" 
                             id="reason" 
                             name="reason" 
-                            class="form-input" 
+                            class="form-control" 
                             value="Authorized Clinical Review" 
-                            placeholder="e.g. Inpatient clinical review, Emergency room triage, Outpatient consult"
+                            placeholder="e.g. Inpatient clinical review, Trauma triage, Outpatient consult"
                             required
                         >
-                        <span class="form-hint">Reason will be documented in the patient's access history.</span>
+                        <div class="form-hint">This reason will be recorded in the patient's audit log.</div>
                     </div>
 
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                        <button type="submit" class="btn btn-primary btn-block" style="background-color: var(--secondary); padding: 0.8rem 1rem; font-size: 1rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem;">
+                        <button type="submit" class="btn btn-primary btn-block" style="padding: 0.8rem;">
                             Access Medical Record
                         </button>
-                        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary btn-block" style="text-align: center;">
-                            Cancel & Back to Dashboard
+                        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary btn-block">
+                            Cancel & Return to Doctor Dashboard
                         </a>
                     </div>
                 </form>
-
             </div>
         </div>
     </main>
 
-    <!-- Footer -->
     <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-brand">SahayID &copy; 2026</div>
-            <div class="footer-note">CRITICAL MEDICAL ACCESS &bull; Verified Doctor Portal</div>
+        <div class="footer-container">
+            <div class="footer-bottom">
+                <div>&copy; 2026 SahayID &bull; CRITICAL MEDICAL ACCESS</div>
+                <div>Authorized Practitioner Portal</div>
+            </div>
         </div>
     </footer>
 

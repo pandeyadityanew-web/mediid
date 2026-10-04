@@ -1,10 +1,10 @@
 /**
- * MediID - Client-side Scripts
- * Modern, lightweight interactive functionality
+ * SahayID - Client-side Healthcare & Security Interactivity
+ * Critical Medical Access Platform
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Mobile navigation menu toggle
+    // 1. Mobile Top Navigation Menu Toggle
     const navToggle = document.getElementById('navToggle');
     const navMenu = document.getElementById('navMenu');
 
@@ -15,16 +15,107 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Dismissible alerts
+    // 2. Dashboard Sidebar Toggle (Mobile)
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const dashboardSidebar = document.getElementById('dashboardSidebar');
+
+    if (sidebarToggle && dashboardSidebar) {
+        sidebarToggle.addEventListener('click', () => {
+            dashboardSidebar.classList.toggle('active');
+        });
+    }
+
+    // 3. Auto-fade Alerts
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
-        // Auto-fade alert after 5 seconds if displayed
-        setTimeout(() => {
-            alert.style.transition = 'opacity 0.4s ease';
-            alert.style.opacity = '0';
-            setTimeout(() => alert.remove(), 400);
-        }, 5000);
+        // Keep active OTP alerts persistent, fade generic notices after 7s
+        if (!alert.classList.contains('alert-persistent')) {
+            setTimeout(() => {
+                alert.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-6px)';
+                setTimeout(() => alert.remove(), 400);
+            }, 7000);
+        }
     });
 
-    console.log('MediID Client initialized successfully.');
+    // 4. How SahayID Works - Animated Process Path & Traveling Dot
+    const processContainer = document.querySelector('.process-flow-container');
+    const processSteps = document.querySelectorAll('.process-step-node');
+    const processDot = document.querySelector('.process-traveling-dot');
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (processContainer && processSteps.length > 0 && !prefersReducedMotion) {
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px 0px -15% 0px',
+            threshold: 0.2
+        };
+
+        const stepObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('step-active');
+                    const stepIndex = parseInt(entry.target.dataset.stepIndex || '1', 10);
+                    if (processDot) {
+                        const progressPct = ((stepIndex - 1) / Math.max(1, processSteps.length - 1)) * 100;
+                        processDot.style.top = `${progressPct}%`;
+                        processDot.classList.add('dot-pulsing');
+                    }
+                }
+            });
+        }, observerOptions);
+
+        processSteps.forEach((step, idx) => {
+            step.dataset.stepIndex = idx + 1;
+            stepObserver.observe(step);
+        });
+    }
+
+    // 5. Doctor Access Request Live Status Polling
+    const pendingPollElement = document.getElementById('pendingRequestTracker');
+    if (pendingPollElement) {
+        const pollUrl = pendingPollElement.dataset.pollUrl || window.location.href;
+        let pollCount = 0;
+        const maxPolls = 100; // 5 minutes polling at 3s intervals
+
+        const pollInterval = setInterval(() => {
+            pollCount++;
+            if (pollCount > maxPolls) {
+                clearInterval(pollInterval);
+                return;
+            }
+
+            fetch(pollUrl, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newTracker = doc.getElementById('pendingRequestTracker');
+                
+                // If status changed from PENDING (e.g. APPROVED or DENIED or VERIFIED), reload full page
+                if (!newTracker || newTracker.dataset.status !== 'PENDING') {
+                    clearInterval(pollInterval);
+                    window.location.reload();
+                }
+            })
+            .catch(() => {
+                // Silently ignore transient network errors during poll
+            });
+        }, 3000);
+    }
+
+    // 6. OTP Form Auto-Focus & Clean Input
+    const otpInput = document.getElementById('otpCodeInput');
+    if (otpInput) {
+        otpInput.focus();
+        otpInput.addEventListener('input', (e) => {
+            // Keep strictly numeric
+            e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 6);
+        });
+    }
+
+    console.log('SahayID Healthcare Security Engine Initialized.');
 });

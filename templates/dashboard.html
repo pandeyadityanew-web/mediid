@@ -9,299 +9,341 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
 </head>
 <body>
-    <!-- Authenticated Navigation Header -->
+    <!-- Top Navigation Header -->
     <header class="navbar">
         <div class="nav-container">
             <a href="{{ url_for('dashboard') }}" class="brand-logo-wrap">
                 <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
                 <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                <span class="brand-tag-inline">Patient Portal</span>
                 <span style="display:none;">MediID</span>
             </a>
-            <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
+            <button class="nav-toggle" id="sidebarToggle" aria-label="Toggle Dashboard Menu">☰</button>
             <nav>
-                <ul class="nav-menu" id="navMenu">
-                    <li><a href="{{ url_for('dashboard') }}" class="nav-link active">Dashboard</a></li>
+                <ul class="nav-menu">
                     <li><a href="{{ url_for('medical_profile') }}" class="nav-link">Medical Profile</a></li>
                     <li><a href="{{ url_for('emergency_contacts') }}" class="nav-link">Emergency Contacts</a></li>
+                    <li><span class="status-badge badge-doctor">{{ user['full_name'] }}</span></li>
                     <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
                 </ul>
             </nav>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="main-wrapper">
-        <!-- Flash Message Alerts -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
+    <!-- Dashboard Sidebar & Main Layout -->
+    <div class="dashboard-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="dashboard-sidebar" id="dashboardSidebar">
+            <div>
+                <!-- Patient Identity Summary Card -->
+                <div class="sidebar-profile-card">
+                    <div class="sidebar-user-name">{{ user['full_name'] }}</div>
+                    <div class="sidebar-user-code">{{ user['medi_id'] }}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Blood Group: <strong>{{ profile['blood_group'] if profile and profile['blood_group'] else 'Unspecified' }}</strong>
+                    </div>
+                    <div style="margin-top: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.2rem;">
+                            <span>Profile Completion</span>
+                            <strong>{{ completion_pct }}%</strong>
+                        </div>
+                        <div style="background-color: #e2e8f0; height: 6px; border-radius: 9999px; overflow: hidden;">
+                            <div style="background-color: var(--primary); height: 100%; width: {{ completion_pct }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-nav-title">Patient Portal</div>
+                <ul class="sidebar-nav-list">
+                    <li>
+                        <a href="#overview" class="sidebar-link active">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            <span>Overview</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#access-requests-panel" class="sidebar-link">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+                            <span>Access Requests</span>
+                            {% set pending_count = namespace(val=0) %}
+                            {% if access_requests %}
+                                {% for r in access_requests %}
+                                    {% if r.status == 'PENDING' %}
+                                        {% set pending_count.val = pending_count.val + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            {% if pending_count.val > 0 %}
+                                <span class="sidebar-badge">{{ pending_count.val }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('medical_profile') }}" class="sidebar-link">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                            <span>Medical Profile</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('emergency_contacts') }}" class="sidebar-link">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            <span>Emergency Contacts ({{ contact_count }})</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#digital-card-section" class="sidebar-link">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            <span>QR & Wallet Card</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#access-history-panel" class="sidebar-link">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/></svg>
+                            <span>Information Access History</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+                <div style="font-size: 0.75rem; color: var(--text-light); line-height: 1.4;">
+                    Member Since: <strong style="color: var(--text-muted);">{{ user['created_at'][:10] if user['created_at'] else '2026' }}</strong>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard Content -->
+        <main class="dashboard-main" id="overview">
+            <!-- Flash Message Alerts -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages" style="padding: 0; margin-bottom: 1.5rem;">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} {% if 'OTP' in message %}alert-persistent{% endif %}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Active OTP Simulation Notice Card (If Patient Just Approved a Request) -->
+            {% if session.get('active_otp_notice') %}
+                <div class="otp-broadcast-card">
+                    <div class="otp-broadcast-info">
+                        <h4>Active Verification Code (OTP)</h4>
+                        <p>Share this 6-digit code with <strong>Dr. {{ session.active_otp_notice.doctor_name }}</strong> to authorize clinical review.</p>
+                        <span style="font-size: 0.75rem; color: #15803d;">Expires in 5 minutes &bull; [Academic Simulation Notification]</span>
+                    </div>
+                    <div class="otp-display-badge">
+                        {{ session.active_otp_notice.otp }}
+                    </div>
                 </div>
             {% endif %}
-        {% endwith %}
 
-        <!-- Patient Header Banner: Name, SahayID Number, Summary -->
-        <section class="patient-banner">
-            <div class="patient-info">
-                <span class="badge-pill" style="margin-bottom: 0.35rem; display: inline-block; font-size: 0.75rem; color: var(--text-muted);">
-                    Patient-provided information
-                </span>
-                <h1>Welcome, {{ user['full_name'] }}</h1>
-                <div class="patient-meta">
-                    <span class="medi-id-chip">
-                        <span>SahayID Number:</span>
-                        <strong>{{ user['medi_id'] }}</strong>
-                    </span>
-                    <span>Account: {{ user['created_at'][:10] if user['created_at'] else 'Active' }}</span>
-                    <span>Last Profile Update: {{ profile['updated_at'][:16] if profile and profile['updated_at'] else 'New Profile' }}</span>
-                </div>
-            </div>
-            <div>
-                <a href="{{ url_for('medical_profile') }}" class="btn btn-primary">Edit Medical Profile</a>
-            </div>
-        </section>
-
-        <!-- Top Critical Vitals Strip: Blood Group & Allergies -->
-        <section class="critical-vitals-strip" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
-            <!-- Blood Group -->
-            <div class="dashboard-card" style="border-left: 5px solid var(--emergency); padding: 1.25rem 1.5rem;">
-                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">
-                    Blood Group (Emergency Critical)
-                </div>
-                <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-top: 0.35rem;">
-                    {% if profile and profile['blood_group'] %}
-                        <span class="badge-blood" style="font-size: 1.8rem; padding: 0.25rem 1rem;">
-                            {{ profile['blood_group'] }}
-                        </span>
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">Recorded for rapid transfusion matching</span>
-                    {% else %}
-                        <span class="badge-pill" style="font-size: 1.1rem; padding: 0.3rem 0.8rem;">Not Specified</span>
-                        <a href="{{ url_for('medical_profile') }}" style="font-size: 0.85rem; text-decoration: underline;">Set blood group</a>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Allergies -->
-            <div class="dashboard-card" style="border-left: 5px solid #e11d48; padding: 1.25rem 1.5rem;">
-                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #e11d48; letter-spacing: 0.04em;">
-                    Allergies & Known Triggers
-                </div>
-                <div style="margin-top: 0.35rem;">
-                    {% if profile and profile['allergies'] %}
-                        <div style="font-size: 1.05rem; font-weight: 700; color: #881337;">
-                            {{ profile['allergies'] }}
-                        </div>
-                    {% else %}
-                        <div style="font-size: 0.95rem; color: var(--text-muted); font-weight: 500;">
-                            No allergies recorded
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </section>
-
-        <!-- Profile Completion Progress -->
-        <section class="completion-wrapper">
-            <div class="completion-header">
-                <span>Profile Completion</span>
-                <span style="color: var(--primary); font-weight: 700;">{{ completion_pct }}%</span>
-            </div>
-            <div class="completion-bar-bg">
-                <div class="completion-bar-fill" style="width: {{ completion_pct }}%;"></div>
-            </div>
-            <p class="completion-note">
-                Calculated based on vital demographics, blood group, allergies, medications, and having at least one emergency contact. (Patient-provided information).
-            </p>
-        </section>
-
-        <!-- Main Cards Grid: Physical Card & Medical Info -->
-        <div class="dashboard-grid">
-            <!-- Physical SahayID Card & QR Code -->
-            <div class="dashboard-card qr-dashboard-card" id="printableMediCard">
-                <div class="card-top">
-                    <!-- Physical Card Header -->
-                    <div style="border-bottom: 2px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem; text-align: center;">
-                        <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--primary);">Digital Medical Identity</span>
-                        <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-top: 0.15rem;">SAHAYID</h2>
+            <!-- Welcome Header Card -->
+            <div class="table-card" style="padding: 1.5rem; margin-bottom: 2rem; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+                    <div>
+                        <span class="status-badge badge-doctor" style="margin-bottom: 0.35rem;">Authenticated Patient Record</span>
+                        <h1 style="font-size: 1.85rem; font-weight: 800; color: var(--navy-900); margin-bottom: 0.35rem;">
+                            Welcome back, {{ user['full_name'] }}
+                        </h1>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">
+                            SahayID Number: <strong style="font-family: var(--font-mono); color: var(--primary);">{{ user['medi_id'] }}</strong> &bull; Blood Group: <strong>{{ profile['blood_group'] or 'Not Recorded' }}</strong>
+                        </p>
                     </div>
 
-                    <div style="text-align: left; margin-bottom: 1rem; font-size: 0.9rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-                            <span style="color: var(--text-muted);">Name:</span>
-                            <strong>{{ user['full_name'] }}</strong>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-                            <span style="color: var(--text-muted);">SahayID Number:</span>
-                            <strong style="font-family: monospace; color: var(--primary);">{{ user['medi_id'] }}</strong>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: var(--text-muted);">Blood Group:</span>
-                            <strong style="color: var(--emergency);">{{ profile['blood_group'] if profile and profile['blood_group'] else 'Unset' }}</strong>
-                        </div>
-                    </div>
-
-                    <!-- QR Display -->
-                    <div class="qr-container" style="padding: 0;">
-                        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 0.5rem;">
-                            Emergency & Doctor Access: SCAN QR
-                        </div>
-                        <div class="qr-image-frame">
-                            <img 
-                                src="{{ url_for('static', filename='generated_qr/' ~ user['medi_id'] ~ '.png') }}" 
-                                alt="SahayID QR Code for {{ user['medi_id'] }}" 
-                                class="qr-image"
-                                onerror="this.src='{{ url_for('serve_dynamic_qr', medi_id=user['medi_id']) }}';"
-                            >
-                        </div>
-
-                        <div class="qr-medi-code">{{ user['medi_id'] }}</div>
-                        <div class="qr-instruction" style="font-size: 0.8rem; color: var(--text-muted);">
-                            Scan to access emergency information
-                        </div>
-
-                        <!-- Card Actions (Hidden during print) -->
-                        <div class="qr-action-buttons" style="margin-top: 1.25rem;">
-                            <a href="{{ url_for('download_qr') }}" class="btn btn-primary btn-icon">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                Download QR
-                            </a>
-
-                            <button type="button" onclick="window.print();" class="btn btn-secondary btn-icon">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                                    <rect x="6" y="14" width="12" height="8"></rect>
-                                </svg>
-                                Print SahayID Card <span style="display:none;">Print MediID Card</span>
-                            </button>
-                        </div>
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <a href="{{ url_for('medical_profile') }}" class="btn btn-primary btn-sm">Update Medical Profile</a>
+                        <a href="{{ url_for('download_qr') }}" class="btn btn-secondary btn-sm">Download QR Code</a>
                     </div>
                 </div>
             </div>
 
-            <!-- Medical Information Summary -->
-            <div class="dashboard-card">
-                <div class="card-top">
-                    <div class="card-title-bar">
-                        <h2 class="card-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                            </svg>
-                            Medical Information
-                        </h2>
-                        <span class="badge-pill">Self-Reported</span>
+            <!-- Access Requests Management Table (Doctor Consent Requests) -->
+            <div class="table-card" id="access-requests-panel">
+                <div class="table-card-header" style="background-color: var(--primary-light);">
+                    <div>
+                        <h3 class="table-card-title" style="color: var(--navy-900);">Active Physician Access Requests</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">Review and approve clinical access requests initiated by doctors.</p>
                     </div>
-
-                    <div class="info-list">
-                        <div class="info-row">
-                            <span class="info-label">Blood Group:</span>
-                            <span class="info-val">{{ profile['blood_group'] if profile and profile['blood_group'] else 'Not specified' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Allergies:</span>
-                            <span class="info-val">{{ profile['allergies'] if profile and profile['allergies'] else 'None reported' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Conditions:</span>
-                            <span class="info-val">{{ profile['medical_conditions'] if profile and profile['medical_conditions'] else 'None reported' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Medications:</span>
-                            <span class="info-val">{{ profile['current_medications'] if profile and profile['current_medications'] else 'None reported' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Previous Surgeries:</span>
-                            <span class="info-val">{{ profile['previous_surgeries'] if profile and profile['previous_surgeries'] else 'None reported' }}</span>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 1.5rem;">
-                        <a href="{{ url_for('medical_profile') }}" class="btn btn-secondary btn-block">Update Medical Details</a>
-                    </div>
+                    <span class="status-badge badge-doctor">Patient Consent Gateway</span>
                 </div>
-            </div>
-        </div>
-
-        <!-- Information Access History & Audit Trail Section -->
-        <section class="dashboard-card" style="margin-top: 2rem;">
-            <div class="card-title-bar">
-                <div>
-                    <h2 class="card-title">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        </svg>
-                        Information Access History
-                        <span style="display:none;">Emergency Access Audit History</span>
-                    </h2>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
-                        Audit log of verified doctors, hospitals, and first responders who have accessed your medical record.
-                    </p>
-                </div>
-                <span class="badge-pill">{{ access_history|length if access_history else 0 }} Event(s)</span>
-            </div>
-
-            {% if access_history %}
-                <div class="data-table-container">
+                <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Date & Time</th>
-                                <th>Accessor / Provider</th>
-                                <th>Access Mode</th>
-                                <th>Hospital / Organization</th>
+                                <th>Doctor Name</th>
+                                <th>Institution / Specialization</th>
                                 <th>Clinical Reason</th>
-                                <th>Access Status</th>
+                                <th>Timestamp</th>
+                                <th>Status</th>
+                                <th>Consent Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for item in access_history %}
+                            {% if access_requests %}
+                                {% for req in access_requests %}
+                                    <tr>
+                                        <td><strong>Dr. {{ req['doctor_name'] }}</strong></td>
+                                        <td>
+                                            <div style="font-size: 0.85rem;">{{ req['hospital_or_clinic'] }}</div>
+                                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ req['specialization'] }} ({{ req['doc_code'] }})</div>
+                                        </td>
+                                        <td>{{ req['reason'] or 'Clinical Review' }}</td>
+                                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ req['created_at'][:19] if req['created_at'] else '' }}</td>
+                                        <td>
+                                            {% if req['status'] == 'PENDING' %}
+                                                <span class="status-badge badge-pending">Pending Approval</span>
+                                            {% elif req['status'] == 'APPROVED' %}
+                                                <span class="status-badge badge-approved">Patient Approved</span>
+                                            {% elif req['status'] == 'VERIFIED' %}
+                                                <span class="status-badge badge-verified">Verified (Active)</span>
+                                            {% elif req['status'] == 'DENIED' %}
+                                                <span class="status-badge badge-denied">Denied</span>
+                                            {% elif req['status'] == 'EXPIRED' %}
+                                                <span class="status-badge badge-expired">Expired</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if req['status'] == 'PENDING' %}
+                                                <div style="display: flex; gap: 0.4rem;">
+                                                    <form action="{{ url_for('patient_approve_request', request_token=req['request_token']) }}" method="POST" style="display: inline;">
+                                                        <button type="submit" class="btn btn-success btn-sm">Approve (Generate OTP)</button>
+                                                    </form>
+                                                    <form action="{{ url_for('patient_deny_request', request_token=req['request_token']) }}" method="POST" style="display: inline;">
+                                                        <button type="submit" class="btn btn-emergency btn-sm">Deny</button>
+                                                    </form>
+                                                </div>
+                                            {% elif req['status'] == 'APPROVED' %}
+                                                <span style="font-size: 0.75rem; color: #166534; font-weight: 700;">OTP Dispatched</span>
+                                            {% elif req['status'] == 'VERIFIED' %}
+                                                <span style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">Authorized for 30m</span>
+                                            {% else %}
+                                                <span style="font-size: 0.75rem; color: var(--text-light);">&mdash;</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
                                 <tr>
-                                    <td><strong>{{ item['created_at'] }}</strong></td>
-                                    <td>
-                                        <strong>{{ item['responder_name'] }}</strong>
-                                    </td>
-                                    <td>
-                                        {% if item['access_source'] == 'DOCTOR' %}
-                                            <span class="badge-doctor-access">Doctor Access</span>
-                                        {% else %}
-                                            <span class="badge-breakglass">Emergency Break-Glass</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ item['organization'] or 'Independent Responder' }}</td>
-                                    <td>{{ item['reason'] }}</td>
-                                    <td>
-                                        {% if item['status'] == 'Authorized' %}
-                                            <span class="status-verified">Authorized</span>
-                                        {% elif item['status'] == 'Active' %}
-                                            <span class="badge-status-active">Active</span>
-                                        {% else %}
-                                            <span class="badge-status-expired">Expired</span>
-                                        {% endif %}
+                                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                                        No pending physician access requests. When a doctor scans your QR code or enters your SahayID, requests will appear here for your approval.
                                     </td>
                                 </tr>
-                            {% endfor %}
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
-            {% else %}
-                <div class="empty-state" style="margin-bottom: 0; margin-top: 1rem; padding: 1.5rem;">
-                    <p style="margin-bottom: 0;">No external accesses have been recorded for your SahayID. Your medical profile is secure and monitored.</p>
+            </div>
+
+            <!-- Digital QR Code & Physical Wallet Card Section -->
+            <div class="card-preview-wrapper" id="digital-card-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <div>
+                        <h3 class="table-card-title">Physical SahayID Wallet Badge</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">Carry this card in your wallet for first responder and clinical access.</p>
+                    </div>
+                    <button onclick="window.print()" class="btn btn-secondary btn-sm">Print Wallet Card</button>
                 </div>
-            {% endif %}
-        </section>
-    </main>
+
+                <div class="printable-card-grid">
+                    <!-- Front View -->
+                    <div class="printable-card">
+                        <div class="card-header-bar">
+                            <span class="card-brand-title">SahayID</span>
+                            <span class="card-blood-tag">{{ profile['blood_group'] if profile and profile['blood_group'] else 'O+' }}</span>
+                        </div>
+                        <div class="card-patient-name">{{ user['full_name'] }}</div>
+                        <div class="card-id-code">{{ user['medi_id'] }}</div>
+                        <div style="font-size: 0.75rem; opacity: 0.85; line-height: 1.4;">
+                            <div>Emergency ID Badge &bull; Critical Medical Access</div>
+                            <div>Scannable by Paramedics & Hospital Physicians</div>
+                        </div>
+                    </div>
+
+                    <!-- Rear View with Scannable QR Image -->
+                    <div class="printable-card" style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #38bdf8; margin-bottom: 0.25rem;">Emergency QR</div>
+                            <div style="font-size: 0.72rem; opacity: 0.9; max-width: 140px; line-height: 1.35;">
+                                Scan to access emergency gateway & authorized clinical records.
+                            </div>
+                        </div>
+                        <img 
+                            src="{{ url_for('static', filename='generated_qr/' + user['medi_id'] + '.png') }}" 
+                            onerror="this.src='{{ url_for('serve_dynamic_qr', medi_id=user['medi_id']) }}'"
+                            alt="SahayID Emergency QR Code" 
+                            class="card-qr-img"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <!-- Information Access History Audit Table -->
+            <div class="table-card" id="access-history-panel">
+                <div class="table-card-header">
+                    <h3 class="table-card-title">Information Access History</h3>
+                    <span class="status-badge badge-verified">Immutable Audit Trail</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Access Mode</th>
+                                <th>Accessor Identity</th>
+                                <th>Organization / Clinic</th>
+                                <th>Stated Reason</th>
+                                <th>Timestamp</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if access_history %}
+                                {% for entry in access_history %}
+                                    <tr>
+                                        <td>
+                                            {% if entry.access_source == 'DOCTOR' %}
+                                                <span class="status-badge badge-doctor">Doctor Access</span>
+                                            {% else %}
+                                                <span class="status-badge badge-breakglass">Emergency Break-Glass</span>
+                                            {% endif %}
+                                        </td>
+                                        <td><strong>{{ entry.responder_name }}</strong></td>
+                                        <td>{{ entry.organization or 'Not Specified' }}</td>
+                                        <td>{{ entry.reason or 'Clinical Consultation' }}</td>
+                                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ entry.created_at }}</td>
+                                        <td>
+                                            {% if entry.status == 'Authorized' %}
+                                                <span class="status-badge badge-approved">Patient Approved</span>
+                                            {% elif entry.status == 'Active' %}
+                                                <span class="status-badge badge-breakglass">Active Token</span>
+                                            {% else %}
+                                                <span class="status-badge badge-expired">Expired</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                                        No access events recorded. All doctor reviews and emergency break-glass accesses will be logged here.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <!-- Footer -->
     <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-brand">SahayID &copy; 2026</div>
-            <div class="footer-note">CRITICAL MEDICAL ACCESS &bull; Confidential & Patient-Controlled Medical Identity</div>
+        <div class="footer-container">
+            <div class="footer-bottom">
+                <div>&copy; 2026 SahayID &bull; CRITICAL MEDICAL ACCESS</div>
+                <div>Patient Governance & Medical Identity Management</div>
+            </div>
         </div>
     </footer>
 
