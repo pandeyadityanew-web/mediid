@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 Internal Error - MediID</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="nav-brand">
+                <span class="brand-icon">+</span>
+                <span>MediID</span>
+            </a>
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                    <li><a href="{{ url_for('login') }}" class="nav-link">Login</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-wrapper">
+        <div class="auth-container" style="max-width: 520px; text-align: center; margin-top: 3rem;">
+            <div class="auth-card" style="border-top: 4px solid var(--emergency);">
+                <div style="font-size: 3.5rem; font-weight: 800; color: var(--emergency); line-height: 1; margin-bottom: 0.5rem;">500</div>
+                <h1 class="auth-title">System Error</h1>
+                <p class="auth-subtitle" style="margin-bottom: 1.75rem;">
+                    A clinical server error occurred. Internal system details are suppressed for security. Please try again shortly.
+                </p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-block">Return to Homepage</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">MediID © 2026</div>
+            <div class="footer-note">Confidential & Patient-Controlled Medical Identity</div>
+        </div>
+    </footer>
+</body>
+</html>

@@ -60,9 +60,13 @@
                     <span class="medi-id-chip">{{ session.get('medi_id') }}</span>
                 </div>
 
+                <div class="alert alert-info" style="margin-top: 1rem; margin-bottom: 1.5rem; background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.875rem;">
+                    <strong>Clinical Notice:</strong> Patient-provided information. Please keep updated. MediID does not independently verify clinical data.
+                </div>
+
                 <form action="{{ url_for('medical_profile') }}" method="POST">
-                    <!-- Section: Core Demographics -->
-                    <h2 class="form-section-heading" style="margin-top: 0.5rem;">Vitals & Demographics</h2>
+                    <!-- Section: Personal Information -->
+                    <h2 class="form-section-heading" style="margin-top: 0.5rem;">Personal Information</h2>
                     <div class="form-grid-2">
                         <div class="form-group">
                             <label for="date_of_birth" class="form-label">Date of Birth</label>
@@ -105,8 +109,8 @@
                         <span class="form-hint">Critical for emergency blood transfusions.</span>
                     </div>
 
-                    <!-- Section: Clinical Criticals -->
-                    <h2 class="form-section-heading">Clinical Essentials</h2>
+                    <!-- Section: Medical Information -->
+                    <h2 class="form-section-heading">Medical Information</h2>
                     
                     <div class="form-group">
                         <label for="allergies" class="form-label">Allergies (Drugs, Food, Environmental)</label>
@@ -149,6 +153,8 @@
                         >{{ profile['previous_surgeries'] if profile and profile['previous_surgeries'] else '' }}</textarea>
                     </div>
 
+                    <!-- Section: Additional Information -->
+                    <h2 class="form-section-heading">Additional Information</h2>
                     <div class="form-group">
                         <label for="additional_notes" class="form-label">Additional Emergency Notes (Optional)</label>
                         <textarea 

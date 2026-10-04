@@ -39,17 +39,20 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Patient Header Banner -->
+        <!-- 1 & 2. Patient Header Banner: Name, MediID, Summary -->
         <section class="patient-banner">
             <div class="patient-info">
+                <span class="badge-pill" style="margin-bottom: 0.35rem; display: inline-block; font-size: 0.75rem; color: var(--text-muted);">
+                    Patient-provided information
+                </span>
                 <h1>Welcome, {{ user['full_name'] }}</h1>
                 <div class="patient-meta">
                     <span class="medi-id-chip">
                         <span>MediID:</span>
                         <strong>{{ user['medi_id'] }}</strong>
                     </span>
-                    <span>Account Created: {{ user['created_at'][:10] if user['created_at'] else 'Active' }}</span>
-                    <span>Last Updated: {{ profile['updated_at'][:16] if profile and profile['updated_at'] else 'New Profile' }}</span>
+                    <span>Account: {{ user['created_at'][:10] if user['created_at'] else 'Active' }}</span>
+                    <span>Last Profile Update: {{ profile['updated_at'][:16] if profile and profile['updated_at'] else 'New Profile' }}</span>
                 </div>
             </div>
             <div>
@@ -57,7 +60,46 @@
             </div>
         </section>
 
-        <!-- Profile Completion Card -->
+        <!-- Top Critical Vitals Strip: 3. Blood Group & 4. Allergies (Visually Prominent) -->
+        <section class="critical-vitals-strip" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+            <!-- Blood Group -->
+            <div class="dashboard-card" style="border-left: 5px solid var(--emergency); padding: 1.25rem 1.5rem;">
+                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">
+                    Blood Group (Emergency Critical)
+                </div>
+                <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-top: 0.35rem;">
+                    {% if profile and profile['blood_group'] %}
+                        <span class="badge-blood" style="font-size: 1.8rem; padding: 0.25rem 1rem;">
+                            {{ profile['blood_group'] }}
+                        </span>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Recorded for rapid transfusion matching</span>
+                    {% else %}
+                        <span class="badge-pill" style="font-size: 1.1rem; padding: 0.3rem 0.8rem;">Not Specified</span>
+                        <a href="{{ url_for('medical_profile') }}" style="font-size: 0.85rem; text-decoration: underline;">Set blood group</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Allergies -->
+            <div class="dashboard-card" style="border-left: 5px solid #e11d48; padding: 1.25rem 1.5rem;">
+                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #e11d48; letter-spacing: 0.04em;">
+                    Allergies & Known Triggers
+                </div>
+                <div style="margin-top: 0.35rem;">
+                    {% if profile and profile['allergies'] %}
+                        <div style="font-size: 1.05rem; font-weight: 700; color: #881337;">
+                            {{ profile['allergies'] }}
+                        </div>
+                    {% else %}
+                        <div style="font-size: 0.95rem; color: var(--text-muted); font-weight: 500;">
+                            No allergies recorded
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Profile Completion Progress -->
         <section class="completion-wrapper">
             <div class="completion-header">
                 <span>Profile Completion</span>
@@ -67,122 +109,56 @@
                 <div class="completion-bar-fill" style="width: {{ completion_pct }}%;"></div>
             </div>
             <p class="completion-note">
-                Calculated based on vital demographics, blood type, clinical factors, and having at least one emergency contact.
+                Calculated based on vital demographics, blood group, allergies, medications, and having at least one emergency contact. (Patient-provided information).
             </p>
         </section>
 
-        <!-- Dashboard Cards Grid -->
+        <!-- Main Cards Grid: 5. QR Code, Clinical Info, and 7. Contacts -->
         <div class="dashboard-grid">
-            <!-- 1. Medical Information Card -->
-            <div class="dashboard-card">
+            <!-- 5. Physical MediID Card & QR Code -->
+            <div class="dashboard-card qr-dashboard-card" id="printableMediCard">
                 <div class="card-top">
-                    <div class="card-title-bar">
-                        <h2 class="card-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                            </svg>
-                            Medical Information
-                        </h2>
-                        {% if profile and profile['blood_group'] %}
-                            <span class="badge-blood">{{ profile['blood_group'] }}</span>
-                        {% else %}
-                            <span class="badge-pill">Blood Type Unset</span>
-                        {% endif %}
+                    <!-- Physical Card Header -->
+                    <div style="border-bottom: 2px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem; text-align: center;">
+                        <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--primary);">Digital Medical Identity</span>
+                        <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-top: 0.15rem;">MEDIID</h2>
                     </div>
 
-                    <div class="info-list">
-                        <div class="info-row">
-                            <span class="info-label">Blood Group:</span>
-                            <span class="info-val">{{ profile['blood_group'] if profile and profile['blood_group'] else 'Not specified' }}</span>
+                    <div style="text-align: left; margin-bottom: 1rem; font-size: 0.9rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                            <span style="color: var(--text-muted);">Name:</span>
+                            <strong>{{ user['full_name'] }}</strong>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">Allergies:</span>
-                            <span class="info-val">{{ profile['allergies'] if profile and profile['allergies'] else 'None recorded' }}</span>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                            <span style="color: var(--text-muted);">MediID:</span>
+                            <strong style="font-family: monospace; color: var(--primary);">{{ user['medi_id'] }}</strong>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">Conditions:</span>
-                            <span class="info-val">{{ profile['medical_conditions'] if profile and profile['medical_conditions'] else 'None recorded' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Medications:</span>
-                            <span class="info-val">{{ profile['current_medications'] if profile and profile['current_medications'] else 'None recorded' }}</span>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-muted);">Blood Group:</span>
+                            <strong style="color: var(--emergency);">{{ profile['blood_group'] if profile and profile['blood_group'] else 'Unset' }}</strong>
                         </div>
                     </div>
-                </div>
 
-                <div class="card-bottom">
-                    <a href="{{ url_for('medical_profile') }}" class="btn btn-secondary btn-block">Edit Medical Profile</a>
-                </div>
-            </div>
-
-            <!-- 2. Emergency Contacts Card -->
-            <div class="dashboard-card">
-                <div class="card-top">
-                    <div class="card-title-bar">
-                        <h2 class="card-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                            </svg>
-                            Emergency Contacts
-                        </h2>
-                        <span class="badge-pill">{{ contact_count }} Contact(s)</span>
-                    </div>
-
-                    <div class="info-list">
-                        <div class="info-row">
-                            <span class="info-label">Registered Contacts:</span>
-                            <span class="info-val">{{ contact_count }}</span>
+                    <!-- QR Display -->
+                    <div class="qr-container" style="padding: 0;">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                            Emergency: SCAN QR
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">First Responders:</span>
-                            <span class="info-val">Direct Call Ready</span>
-                        </div>
-                    </div>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 1rem; line-height: 1.5;">
-                        Emergency contacts are immediately reachable when first responders scan your emergency MediID.
-                    </p>
-                </div>
-
-                <div class="card-bottom">
-                    <a href="{{ url_for('emergency_contacts') }}" class="btn btn-secondary btn-block">Manage Contacts</a>
-                </div>
-            </div>
-
-            <!-- 3. MediID & QR Code Card -->
-            <div class="dashboard-card qr-dashboard-card">
-                <div class="card-top">
-                    <div class="card-title-bar">
-                        <h2 class="card-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="7" height="7"></rect>
-                                <rect x="14" y="3" width="7" height="7"></rect>
-                                <rect x="14" y="14" width="7" height="7"></rect>
-                                <rect x="3" y="14" width="7" height="7"></rect>
-                            </svg>
-                            Emergency MediID Card
-                        </h2>
-                        <span class="badge-pill" style="background-color: var(--secondary-light); color: var(--secondary-hover); font-weight: 700;">Active ID</span>
-                    </div>
-
-                    <div class="qr-container">
                         <div class="qr-image-frame">
                             <img 
                                 src="{{ url_for('static', filename='generated_qr/' ~ user['medi_id'] ~ '.png') }}" 
-                                alt="MediID Emergency QR Code for {{ user['medi_id'] }}" 
+                                alt="MediID QR Code for {{ user['medi_id'] }}" 
                                 class="qr-image"
                             >
                         </div>
 
                         <div class="qr-medi-code">{{ user['medi_id'] }}</div>
-                        <div class="qr-instruction">Scan to access emergency information</div>
-                        <p class="qr-notice">
-                            Keep this QR accessible on your lockscreen, wallet card, or medical bracelet for first responders.
-                        </p>
+                        <div class="qr-instruction" style="font-size: 0.8rem; color: var(--text-muted);">
+                            Scan to access emergency information
+                        </div>
 
-                        <div class="qr-action-buttons">
+                        <!-- Card Actions (Hidden during print) -->
+                        <div class="qr-action-buttons" style="margin-top: 1.25rem;">
                             <a href="{{ url_for('download_qr') }}" class="btn btn-primary btn-icon">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -201,18 +177,91 @@
                                 Print MediID Card
                             </button>
                         </div>
-
-                        <form action="{{ url_for('regenerate_qr') }}" method="POST" style="margin-top: 1rem;">
-                            <button type="submit" class="btn-link" style="background: none; border: none; font-size: 0.8rem; color: var(--text-muted); cursor: pointer; text-decoration: underline;">
-                                Regenerate QR Code Image
-                            </button>
-                        </form>
                     </div>
+                </div>
+            </div>
+
+            <!-- Medical Information Summary -->
+            <div class="dashboard-card">
+                <div class="card-top">
+                    <div class="card-title-bar">
+                        <h2 class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                            </svg>
+                            Medical Information
+                        </h2>
+                        <span class="badge-pill">Self-Reported</span>
+                    </div>
+
+                    <div class="info-list">
+                        <div class="info-row">
+                            <span class="info-label">Blood Group:</span>
+                            <span class="info-val">{{ profile['blood_group'] if profile and profile['blood_group'] else 'Not specified' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Allergies:</span>
+                            <span class="info-val" style="color: var(--emergency);">{{ profile['allergies'] if profile and profile['allergies'] else 'None recorded' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Chronic Conditions:</span>
+                            <span class="info-val">{{ profile['medical_conditions'] if profile and profile['medical_conditions'] else 'None recorded' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Current Medications:</span>
+                            <span class="info-val">{{ profile['current_medications'] if profile and profile['current_medications'] else 'None recorded' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Past Surgeries:</span>
+                            <span class="info-val">{{ profile['previous_surgeries'] if profile and profile['previous_surgeries'] else 'None recorded' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-bottom">
+                    <a href="{{ url_for('medical_profile') }}" class="btn btn-secondary btn-block">Edit Medical Profile</a>
+                </div>
+            </div>
+
+            <!-- 7. Emergency Contacts Card -->
+            <div class="dashboard-card">
+                <div class="card-top">
+                    <div class="card-title-bar">
+                        <h2 class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            Emergency Contacts
+                        </h2>
+                        <span class="badge-pill">{{ contact_count }} Contact(s)</span>
+                    </div>
+
+                    <div class="info-list">
+                        <div class="info-row">
+                            <span class="info-label">Designated Next of Kin:</span>
+                            <span class="info-val">{{ contact_count }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Status:</span>
+                            <span class="info-val" style="color: var(--secondary);">First Responder Ready</span>
+                        </div>
+                    </div>
+
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 1rem; line-height: 1.5;">
+                        Emergency contacts are displayed to verified responders so family or doctors can be notified immediately.
+                    </p>
+                </div>
+
+                <div class="card-bottom">
+                    <a href="{{ url_for('emergency_contacts') }}" class="btn btn-secondary btn-block">Manage Contacts</a>
                 </div>
             </div>
         </div>
 
-        <!-- Emergency Access History Section (Part 5) -->
+        <!-- 8. Emergency Access Audit History Section -->
         <section class="completion-wrapper" style="margin-top: 1.5rem;">
             <div class="card-title-bar" style="border-bottom: none; margin-bottom: 0.5rem; padding-bottom: 0;">
                 <div>
@@ -223,7 +272,7 @@
                         Emergency Access Audit History
                     </h2>
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
-                        Real-time log of first responders and medical providers who have requested emergency access to your profile.
+                        Audit log of first responders and medical providers who have accessed your profile.
                     </p>
                 </div>
                 <span class="badge-pill">{{ access_history|length if access_history else 0 }} Event(s)</span>
@@ -238,8 +287,7 @@
                                 <th>Responder</th>
                                 <th>Organization</th>
                                 <th>Reason</th>
-                                <th>IP Address</th>
-                                <th>Status</th>
+                                <th>Session Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -249,7 +297,6 @@
                                     <td>{{ item['responder_name'] }}</td>
                                     <td>{{ item['organization'] or 'Independent' }}</td>
                                     <td>{{ item['reason'] }}</td>
-                                    <td><code style="font-size: 0.8rem; background-color: #f1f5f9; padding: 0.15rem 0.35rem; border-radius: 4px;">{{ item['ip_address'] or '127.0.0.1' }}</code></td>
                                     <td>
                                         {% if item['status'] == 'Active' %}
                                             <span class="badge-status-active">Active</span>

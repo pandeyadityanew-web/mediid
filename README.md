@@ -1,181 +1,351 @@
-# MediID - Digital Medical Identity System
+# MediID - Privacy-Focused Digital Medical Identity System
 
-**"Your Medical Identity. Available When It Matters."**
+> **"Your Medical Identity. Available When It Matters."**
 
-MediID is a privacy-focused digital medical identity web application. It enables patients to store essential medical information (such as blood group, allergies, medications, and emergency contacts) and generate a unique MediID with a QR code designed for fast, frictionless emergency access.
-
----
-
-## 📌 Features Overview (Parts 1, 2, 3, 4 & 5)
-
-- **Flask Backend & Application Architecture**:
-  - Modular routing and application context handling.
-  - Automatic SQLite database creation and table initialization.
-  - Explicit SQLite foreign key enforcement on every connection.
-  - Parameterized SQL queries preventing SQL injection vulnerabilities.
-  - Route protection decorator (`@login_required`) guarding all private patient endpoints.
-- **Cryptographic Security & Privacy**:
-  - Secure password hashing using Werkzeug (`generate_password_hash` / `check_password_hash`).
-  - Cryptographically random MediID generator producing unique identifiers formatted as `MED-XXXXXXXX`.
-  - Session-based user authentication.
-  - Strict ownership authorization checks preventing unauthorized modification or cross-user deletion.
-  - No passwords or medical information in server console logs or query parameters.
-- **Emergency Access & Verification System (Part 5)**:
-  - **End-to-End Emergency Flow**:
-    `QR Scan` &rarr; `Emergency Gateway (/emergency/<medi_id>)` &rarr; `Verification Protocol (/emergency/<medi_id>/verify)` &rarr; `Time-Limited Token View (/emergency/access/<token>)` &rarr; `Audit Logged`.
-  - **Cryptographic Access Token**: Temporary URL-safe token generated via `secrets.token_urlsafe(32)`.
-  - **Zero Raw Token Storage**: The server stores strictly the **SHA-256 hash** of the token in the `emergency_access` table.
-  - **Server-Side 10-Minute Expiry**: Tokens are strictly invalid after 10 minutes (returns HTTP 403; zero clinical information leaked upon expiration).
-  - **Zero Health Data in URLs**: URLs contain solely random tokens (`/emergency/access/<token>`).
-  - **Abuse Protection / Rate Limiting**: Maximum 5 emergency access requests per 10 minutes per MediID.
-  - **Audit Logging**: Every emergency scan logs `EMERGENCY_SCAN`, and every verified access logs `EMERGENCY_ACCESS` in `access_logs`.
-  - **Emergency Access History on Dashboard**: Patients can view all responders, organizations, reasons, timestamps, and active/expired statuses directly in their dashboard.
-- **MediID QR Code Generation System**:
-  - **Zero-Medical-Data QR Payload**: The QR code strictly encodes the emergency gateway URL (`http://127.0.0.1:5000/emergency/<medi_id>`). It does NOT embed any personal or clinical information.
-  - **Automatic Generation**: Generated automatically upon patient registration and saved as high-contrast PNG in `static/generated_qr/<medi_id>.png`.
-  - **Download QR (`/download-qr`)**: Secure attachment download restricted strictly to the authenticated user's session ID.
-  - **Print MediID Card**: Physical wallet-sized medical emergency ID card formatted with browser `@media print` support.
-- **Patient Dashboard & Health Profile**:
-  - **Dashboard (`/dashboard`)**: Patient details, MediID chip, dynamic profile completion percentage (8 criteria), medical overview, emergency contacts summary, emergency ID card, and emergency access audit history.
-  - **Medical Profile (`/medical-profile`)**: Form for updating vitals, blood type, allergies, conditions, and medications.
-  - **Emergency Contacts (`/emergency-contacts`)**: Add, view, and securely delete emergency contacts.
+MediID is a lightweight, privacy-first digital medical identity system designed for emergency healthcare scenarios. It enables individuals to maintain essential, lifesaving medical information—such as blood group, critical allergies, chronic conditions, active medications, and next-of-kin emergency contacts—and provides a unique **MediID** paired with a scannable **QR code** for immediate, controlled access during medical emergencies.
 
 ---
 
-## 📂 Project Structure
+## 1. Problem Statement
+
+In acute medical emergencies (such as vehicular collisions, sudden unconsciousness, or severe allergic anaphylaxis), first responders and emergency physicians face a critical information vacuum:
+- **Unconscious or Incapacitated Patients**: Patients are frequently unable to communicate their medical history, known drug allergies, or next-of-kin contacts.
+- **Dangers of Blind Treatment**: Administering common emergency drugs (such as penicillin or NSAIDs) or incompatible blood transfusions without knowing a patient's medical history can lead to fatal complications.
+- **Privacy vs. Access Dilemma**: Storing raw medical data on public cards or directly inside standard QR codes exposes highly confidential health information to anyone who glances at or scans the code in public.
+
+---
+
+## 2. The Solution
+
+MediID bridges the critical gap between **speed of emergency access** and **patient privacy**:
+1. **Zero Raw Health Data in QR Codes**: The physical MediID QR code contains solely a secure gateway URL (`http://.../emergency/<medi_id>`). It never embeds names, blood groups, or medical conditions in the QR payload.
+2. **First Responder Emergency Gateway & Verification**: Anyone scanning the code lands on a protected authorization gateway. To view emergency information, the responder must state their identity, organization, reason, and confirm under penalty of law that an emergency exists.
+3. **Time-Limited Cryptographic Tokens**: Upon verification, a cryptographically random URL-safe token is issued with a **strict 10-minute expiration**. The server stores only the **SHA-256 hash** of the token.
+4. **Complete Patient Auditability**: Every QR scan and every verified clinical view is logged with timestamps and IP addresses. Patients can inspect their entire emergency access history directly from their dashboard.
+
+---
+
+## 3. Key Features (Parts 1 – 6)
+
+### Part 1: Modern Healthcare Design & Layout
+- Clean, responsive UI built with custom semantic CSS (zero heavy front-end framework bloat).
+- Mobile-optimized navigation and accessible forms.
+- Branded error pages (`404 Not Found`, `403 Forbidden`, `429 Rate Limited`, `500 Server Error`).
+
+### Part 2: Secure Database & Authentication Foundation
+- SQLite database with explicit foreign key enforcement (`PRAGMA foreign_keys = ON;`) on every connection.
+- Cryptographically random MediID format: `MED-XXXXXXXX` (uppercase alphanumeric, collision-resistant).
+- Secure password hashing using Werkzeug (`scrypt` / PBKDF2).
+- Parameterized SQL queries throughout to eliminate SQL injection vulnerabilities.
+- Session-based authentication with ownership guards (`@login_required`).
+
+### Part 3: Patient Dashboard & Medical Profile
+- Patient dashboard with dynamic profile completion percentage tracking (8 clinical criteria).
+- Medical profile management organized into:
+  - **Personal Information**: Date of birth, gender, blood group.
+  - **Medical Information**: Critical allergies, chronic conditions, current medications, surgical history.
+  - **Additional Information**: Emergency notes (e.g., organ donor status, implants).
+- Emergency contacts manager: Add, list, and securely delete next-of-kin contacts with strict ownership verification.
+
+### Part 4: MediID QR Code Generation System
+- Dynamic QR code generation using `qrcode[pil]`.
+- QR codes encode strictly the emergency access URL (`{BASE_URL}/emergency/{medi_id}`).
+- Dedicated QR image download endpoint (`/download-qr`) restricted to the authenticated session owner.
+- Printable physical MediID card layout optimized for standard wallet/badge dimensions with `@media print` styles.
+
+### Part 5: Emergency Access & Verification Protocol
+- Emergency gateway route (`/emergency/<medi_id>`) displaying identity confirmation and legal audit notices.
+- Verification protocol form (`/emergency/<medi_id>/verify`) requiring responder identification, clinical reason, and emergency declaration checkbox.
+- Ephemeral access tokens (`secrets.token_urlsafe(32)`) with 10-minute server-side time-to-live (TTL).
+- Token security: Raw tokens are never stored in the database; only SHA-256 hashes (`token_hash`) are persisted.
+- Clinical emergency view (`/emergency/access/<token>`) featuring live countdown timer, prominent blood group badge, allergy warnings, and one-click contact dialing.
+- Abuse protection: In-built rate limiting restricting excessive verification requests per MediID.
+
+### Part 6: System Hardening & Polish
+- Defensive HTTP security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-XSS-Protection`).
+- Strategic database indexes for fast lookups on high-traffic columns (`users.medi_id`, `users.email`, `emergency_access.token_hash`).
+- Automated demo seeding script (`seed_demo.py`) for presentations and viva examinations.
+- Comprehensive end-to-end automated test suite covering all 18 system requirements.
+
+---
+
+## 4. End-to-End Emergency Workflow
 
 ```
-mediid/
-├── app.py                      # Flask application, DB schema, auth, portal & emergency access routes
-├── requirements.txt            # Python dependency declarations (Flask, qrcode[pil])
-├── test_verification.py        # Part 2 automated test suite (schema, auth, hashing)
-├── test_part3.py               # Part 3 automated test suite (dashboard, profile, ownership)
-├── test_part4.py               # Part 4 automated test suite (QR generation, download, gateway)
-├── test_part5.py               # Part 5 automated test suite (Emergency access, tokens, expiration, audit)
-├── database/
-│   └── medid.db                # SQLite database file for local development
-├── templates/
-│   ├── index.html              # Landing page template (session-aware)
-│   ├── login.html              # User login template
-│   ├── register.html           # Patient registration template
-│   ├── dashboard.html          # Patient dashboard with scannable QR, card & access audit history
-│   ├── medical_profile.html    # Medical profile editing form
-│   ├── emergency_contacts.html # Emergency contacts management and deletion
-│   ├── emergency_access.html   # First responder scanned gateway (privacy-guarded)
-│   ├── emergency_verify.html   # Emergency verification & confirmation form
-│   └── emergency_information.html # Verified emergency clinical view (time-limited)
-├── static/
-│   ├── css/
-│   │   └── style.css           # Healthcare design system & print stylesheet
-│   ├── js/
-│   │   └── script.js           # Client-side scripts and mobile navigation
-│   └── generated_qr/           # Directory holding generated PNG QR codes
-└── README.md                   # Project documentation and guide
++-------------------------------------------------------------------------+
+|                              PATIENT SIDE                               |
++-------------------------------------------------------------------------+
+   [ Register ] ---> [ Enter Medical Data ] ---> [ Download/Print QR Card ]
+                                                             |
+                                                             v
++-------------------------------------------------------------------------+
+|                            EMERGENCY EVENT                              |
++-------------------------------------------------------------------------+
+                     1. Responder Scans Physical QR Code
+                                     |
+                                     v
+                   2. Public Emergency Gateway Loaded
+                        (/emergency/<medi_id>)
+                 (Medical info is HIDDEN at this stage)
+                                     |
+                                     v
+                    3. Responder Completes Verification
+                     - Responder Name & Organization
+                     - Emergency Reason & Legal Confirmation
+                                     |
+                                     v
+                4. Cryptographic Temporary Token Generated
+                     - 32-byte URL-safe random string
+                     - SHA-256 hash stored in SQLite
+                     - 10-minute automatic expiration
+                                     |
+                                     v
+                  5. Emergency Clinical Record Displayed
+                       (/emergency/access/<token>)
+                     - Blood Group & Critical Allergies
+                     - Active Medications & Medical Conditions
+                     - Next-of-Kin Emergency Contacts
+                     - Active 10-minute countdown timer
+                                     |
+                                     v
+                     6. Access Recorded in Audit Trail
+                     - Responder identity, reason & timestamp
+                     - Patient can inspect audit log in Dashboard
 ```
 
 ---
 
-## 🗄️ Database Schema Details
+## 5. Technology Stack
 
-### 1. `users`
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique user identifier |
-| `medi_id` | TEXT | UNIQUE NOT NULL | Random alphanumeric ID (`MED-XXXXXXXX`) |
-| `full_name` | TEXT | NOT NULL | Patient's full name |
-| `email` | TEXT | UNIQUE NOT NULL | Normalized email address |
-| `phone` | TEXT | | Contact phone number |
-| `password_hash` | TEXT | NOT NULL | Werkzeug-hashed password |
-| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Registration timestamp |
-
-### 2. `medical_profiles`
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Profile ID |
-| `user_id` | INTEGER | NOT NULL, FK &rarr; `users.id` | Associated patient |
-| `date_of_birth` | TEXT | | Birthdate |
-| `gender` | TEXT | | Gender |
-| `blood_group` | TEXT | | e.g., O+, A-, B+, etc. |
-| `allergies` | TEXT | | Drug & food allergies |
-| `medical_conditions` | TEXT | | Chronic/acute conditions |
-| `current_medications` | TEXT | | Active prescriptions |
-| `previous_surgeries` | TEXT | | Surgical history |
-| `additional_notes` | TEXT | | Special clinical directions |
-| `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Last updated timestamp |
-
-### 3. `emergency_contacts`
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Contact ID |
-| `user_id` | INTEGER | NOT NULL, FK &rarr; `users.id` | Associated patient |
-| `name` | TEXT | NOT NULL | Contact full name |
-| `relationship` | TEXT | | Relationship (e.g. Spouse) |
-| `phone` | TEXT | NOT NULL | Contact telephone |
-| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Creation timestamp |
-
-### 4. `access_logs`
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Log entry ID |
-| `user_id` | INTEGER | NOT NULL, FK &rarr; `users.id` | User accessing profile |
-| `access_type` | TEXT | NOT NULL | Access event (`LOGIN`, `EMERGENCY_SCAN`, `EMERGENCY_ACCESS`) |
-| `accessed_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Event timestamp |
-| `ip_address` | TEXT | | Client IP address |
-
-### 5. `emergency_access` (Part 5)
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Access authorization ID |
-| `user_id` | INTEGER | NOT NULL, FK &rarr; `users.id` | Patient whose profile was accessed |
-| `token_hash` | TEXT | NOT NULL UNIQUE | SHA-256 hash of temporary token |
-| `responder_name` | TEXT | NOT NULL | Name of responder / doctor |
-| `organization` | TEXT | | Hospital / EMS facility |
-| `reason` | TEXT | NOT NULL | Clinical emergency reason |
-| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Request timestamp |
-| `expires_at` | TIMESTAMP | NOT NULL | Expiry timestamp (created_at + 10 mins) |
-| `accessed_at` | TIMESTAMP | | First access timestamp |
-| `ip_address` | TEXT | | Responder network IP address |
+- **Backend**: Python 3.10+ / Flask 3.x
+- **Database**: SQLite 3 (with foreign key constraints and indexed queries)
+- **Frontend**: HTML5, CSS3 (Healthcare design system), Vanilla JavaScript
+- **Security & Cryptography**: Werkzeug (`generate_password_hash`, `check_password_hash`), Python standard library `secrets`, `hashlib` (SHA-256)
+- **QR Code Generation**: `qrcode[pil]`, Pillow
 
 ---
 
-## 🚀 Getting Started
+## 6. Database Architecture
 
-### 1. Prerequisites
-- **Python 3.8+** installed on your system.
+The SQLite schema consists of 5 relational tables:
 
-### 2. Navigate to the Project Directory
+```
++------------------+         +-----------------------+
+|      users       |1       1|   medical_profiles    |
+|------------------+---------+-----------------------|
+| id (PK)          |         | id (PK)               |
+| medi_id (UNIQUE) |         | user_id (FK)          |
+| full_name        |         | blood_group           |
+| email (UNIQUE)   |         | allergies             |
+| phone            |         | medical_conditions    |
+| password_hash    |         | current_medications   |
+| created_at       |         | previous_surgeries    |
++--------+---------+         | additional_notes      |
+         |                   +-----------------------+
+         |1
+         |
+         +-------------------+1          +-----------------------+
+         |                   +-----------+  emergency_contacts   |
+         |                   |           |-----------------------|
+         |                   |           | id (PK)               |
+         |                   |           | user_id (FK)          |
+         |                   |           | name, relationship    |
+         |                   |           | phone, created_at     |
+         |                   |           +-----------------------+
+         |                   |
+         |1                  |1          +-----------------------+
+         +-------------------+-----------+      access_logs      |
+         |                   |           |-----------------------|
+         |                   |           | id (PK)               |
+         |                   |           | user_id (FK)          |
+         |                   |           | access_type           |
+         |                   |           | ip_address            |
+         |                   |           | accessed_at           |
+         |                   |           +-----------------------+
+         |                   |
+         |1                  |1          +-----------------------+
+         +-------------------+-----------+   emergency_access    |
+                                         |-----------------------|
+                                         | id (PK)               |
+                                         | user_id (FK)          |
+                                         | token_hash (UNIQUE)   |
+                                         | responder_name        |
+                                         | organization          |
+                                         | reason                |
+                                         | created_at            |
+                                         | expires_at            |
+                                         | accessed_at           |
+                                         | ip_address            |
+                                         +-----------------------+
+```
+
+### Strategic Indexes
+- `idx_users_medi_id` ON `users(medi_id)`: Instant lookup during QR scan routing.
+- `idx_users_email` ON `users(email)`: Instant lookup during patient login.
+- `idx_emergency_access_token` ON `emergency_access(token_hash)`: High-performance validation of temporary tokens.
+- `idx_emergency_contacts_user` ON `emergency_contacts(user_id)`: Quick retrieval of next-of-kin contacts.
+- `idx_access_logs_user` ON `access_logs(user_id)`: Efficient dashboard audit log queries.
+
+---
+
+## 7. Security & Privacy Highlights (Viva Discussion Points)
+
+| Security Aspect | Implementation in MediID | Viva Talking Point |
+|---|---|---|
+| **QR Code Privacy** | Encodes `{BASE_URL}/emergency/{medi_id}` only. Zero medical data. | If someone photographs the patient's badge, they obtain zero medical details. |
+| **Password Storage** | `werkzeug.security` with strong salts and modern hashing algorithms. | Raw passwords are never stored or logged in plain text. |
+| **Token Ephemerality** | 32-byte cryptographically secure random token, 10-minute server TTL. | Access automatically ceases after emergency triage. |
+| **Token-at-Rest Protection** | Server hashes token with SHA-256 before inserting into DB. | Even full database compromise does not yield valid active tokens. |
+| **SQL Injection Defense** | 100% Parameterized queries (`?` bindings). | Prevents SQL injection across registration, login, and queries. |
+| **Cross-User Tampering** | Deletion routes verify `WHERE id = ? AND user_id = session['user_id']`. | Prevents Insecure Direct Object References (IDOR). |
+| **Rate Limiting** | Max 5 verification attempts per 10 minutes per MediID. | Mitigates brute-force token generation and denial-of-service. |
+| **Defensive HTTP Headers** | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`. | Mitigates clickjacking, MIME-sniffing, and referrer leakage. |
+| **Audit Accountability** | Dual-event logging (`EMERGENCY_SCAN` and `EMERGENCY_ACCESS`). | Complete transparency; patients can review access history. |
+
+---
+
+## 8. Installation & Setup Instructions
+
+### Prerequisites
+- Python 3.10 or higher
+- `pip` package manager
+- Modern web browser (Chrome, Edge, Firefox, Safari)
+
+### Step 1: Clone or Navigate to Project
 ```bash
-cd C:\Users\pande\.gemini\antigravity\scratch\mediid
+git clone https://github.com/pandeyadityanew-web/mediid.git
+cd mediid
 ```
 
-### 3. Install Dependencies
+### Step 2: Create and Activate Virtual Environment (Recommended)
 ```bash
-python -m pip install -r requirements.txt
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# macOS / Linux
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-### 4. Run the Complete Automated Verification Test Suites
+### Step 3: Install Dependencies
 ```bash
-python test_verification.py   # Part 2 tests (schema, auth, hashing)
-python test_part3.py          # Part 3 tests (dashboard, profile, ownership)
-python test_part4.py          # Part 4 tests (QR generation, download protection)
-python test_part5.py          # Part 5 tests (Emergency access, tokens, expiration, audit)
+pip install -r requirements.txt
 ```
 
-### 5. Start the Flask Application
+### Step 4: Configure Environment Variables (Optional)
+Copy `.env.example` to `.env` (or configure system variables):
+```bash
+# Windows PowerShell
+copy .env.example .env
+```
+Default fallback values (`SECRET_KEY='mediid-dev-secret-key-2026'`, `BASE_URL='http://127.0.0.1:5000'`) are already configured for local execution.
+
+---
+
+## 9. How to Run
+
+### Step 1: Seed Demo Patient Data
+Populate the database with a pre-configured, presentation-ready fictional patient:
+```bash
+python seed_demo.py
+```
+
+### Step 2: Start the Flask Application
 ```bash
 python app.py
 ```
 
-Open your browser and navigate to:
-👉 **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
+### Step 3: Open in Browser
+Visit: **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
 
 ---
 
-## 🧪 Testing Checklist for Part 5
+## 10. Demo Walkthrough & Test Credentials
 
-1. **Emergency Verification Access**: Visit `http://127.0.0.1:5000/emergency/<medi_id>/verify`. Confirm the form requires responder name, reason, and emergency confirmation.
-2. **Token Generation**: Submit the verification form. Notice redirection to `/emergency/access/<secure_random_token>`.
-3. **Database Token Security**: Check the database; confirm only the **SHA-256 hash** is stored in `emergency_access`, never the raw token.
-4. **Emergency Clinical Record**: Observe the clinical view displaying blood type, allergies, conditions, medications, next-of-kin contacts, and responder audit metadata. Confirm password, email, and database IDs are not exposed.
-5. **Token Expiration**: Wait 10 minutes (or advance the token expiry time). Verify the page returns HTTP 403 *"Emergency access has expired"* and displays zero medical data.
-6. **Patient Audit Log**: Log into the patient account and open `/dashboard`. The **Emergency Access Audit History** table will display the responder's name, organization, reason, IP, timestamp, and status.
+### Demo Account (Pre-Seeded via `seed_demo.py`)
+- **Login Identifier**: `alex.demo@mediid.local` *(or `MED-DEMO2026`)*
+- **Password**: `DemoPass123!`
+- **Assigned MediID**: `MED-DEMO2026`
+- **Blood Group**: O+
+- **Critical Allergies**: Penicillin (severe anaphylaxis), Peanuts
+- **Emergency Contact**: Priya Sharma (`+1-555-019-9944`)
+
+### Viva Demonstration Steps
+1. **Patient Authentication**: Log in as Alex Sharma using either email or MediID.
+2. **Dashboard Overview**: Review the patient header, blood group badge, profile completion bar, printable physical ID card, and access audit log.
+3. **Download QR Code**: Click **Download QR** to inspect the generated image file.
+4. **Simulate First Responder Scan**:
+   - Open an incognito/private browser window (simulating an external responder's phone).
+   - Navigate to: `http://127.0.0.1:5000/emergency/MED-DEMO2026`.
+   - Observe that medical data is **hidden** and the legal audit disclaimer is presented.
+5. **Execute Verification**:
+   - Click **Continue to Verification**.
+   - Enter responder details (e.g., Name: `Dr. Sarah Patel`, Org: `City Trauma Center`, Reason: `Acute trauma triage`).
+   - Check the mandatory emergency confirmation box and submit.
+6. **Review Emergency View**:
+   - Inspect the verified clinical page: blood group banner, critical allergy box, medications, next-of-kin contact, and the active 10-minute countdown timer.
+7. **Verify Audit Trail**:
+   - Switch back to the authenticated patient's dashboard and refresh.
+   - Observe that `Dr. Sarah Patel`'s emergency access is now immutably logged with timestamp and active status.
+
+---
+
+## 11. Automated Test Suites
+
+MediID includes 5 automated test suites verifying every layer of the system:
+
+```bash
+# Run all test suites sequentially
+python test_verification.py
+python test_part3.py
+python test_part4.py
+python test_part5.py
+python test_final.py
+```
+
+### What `test_final.py` Verifies:
+1. Landing page rendering & 7-step "How It Works" workflow.
+2. User registration & cryptographic `MED-XXXXXXXX` formatting.
+3. User login & session audit trail recording.
+4. Route protection guards on unauthenticated visits.
+5. Dashboard rendering with vitals, printable card, and audit tables.
+6. Medical profile update functionality across all clinical categories.
+7. Emergency contact addition and secure deletion.
+8. Scannable QR code image generation.
+9. Secure QR attachment download endpoint.
+10. QR data privacy guarantee (zero health data in payload).
+11. First responder gateway privacy guard & legal disclaimer.
+12. Graceful rejection of non-existent MediIDs (404).
+13. Emergency verification validation (mandatory confirmation checkbox).
+14. Cryptographic token generation & SHA-256 database hashing.
+15. Full clinical view rendering with countdown timer.
+16. Server-side token expiration enforcement (403 Forbidden).
+17. Custom branded error templates (404, 403, 500).
+18. Defensive HTTP security headers (`nosniff`, `DENY`, `strict-origin`).
+
+---
+
+## 12. Realistic Limitations & Future Scope
+
+### Current Academic / Prototype Limitations
+- **Patient-Provided Information**: Clinical data is self-reported by the patient; MediID does not currently interface with hospital Electronic Health Record (EHR) systems to independently verify clinical claims.
+- **Local SQLite Database**: While suitable for development and demonstrations, high-concurrency production deployments would require PostgreSQL or MySQL with connection pooling.
+- **Simulated Responder Identity**: First responder verification is based on honor-system self-declaration with legal warnings, rather than integration with government paramedic registry APIs or smart card PKI.
+- **Simulated SMS / Push Notifications**: Access events are logged in the database rather than immediately triggering real-time SMS/cellular alerts to emergency contacts.
+
+### Future Scope
+- **FHIR / HL7 Interoperability**: Integration with Fast Healthcare Interoperability Resources (FHIR) to synchronize verified diagnoses directly from hospital EHR systems.
+- **National Emergency Registry Integration**: Integration with emergency dispatch portals (e.g., 911 / 112 CAD systems) to authenticate emergency personnel via institutional credentials.
+- **Automated Emergency Contact Alerts**: Automated Twilio/telephony integration to instantly broadcast SMS and GPS location alerts to next-of-kin when emergency access is verified.
+- **NFC Tag Support**: Programming physical NFC wristbands or cards with the same secure gateway link for tap-to-access paramedic hardware.
+- **Zero-Knowledge Multi-Key Encryption**: Encrypting sensitive medical fields client-side, with key fragments revealed only upon multi-party emergency consensus.
+
+---
+
+## 13. License & Authorship
+
+- **Project**: MediID
+- **Purpose**: Academic Demonstration & Viva Examination
+- **Year**: 2026
+- **License**: MIT License

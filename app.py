@@ -248,6 +248,14 @@ def init_db():
             );
         """)
 
+        # Database Indexes for Performance & Scalability
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_medi_id ON users (medi_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_emergency_access_token ON emergency_access (token_hash);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_emergency_contacts_user ON emergency_contacts (user_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_logs_user ON access_logs (user_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_medical_profiles_user ON medical_profiles (user_id);")
+
         conn.commit()
     finally:
         conn.close()
@@ -969,6 +977,46 @@ def emergency_access_view(token):
         access=access_meta,
         remaining_seconds=remaining_seconds
     )
+
+
+# ============================================================================
+# Security Headers & Custom HTTP Error Handlers
+# ============================================================================
+
+@app.after_request
+def set_security_headers(response):
+    """
+    Attach standard defensive HTTP security headers to all outgoing responses.
+    """
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
+
+
+@app.errorhandler(404)
+def not_found_error(error):
+    """Render custom branded 404 page."""
+    return render_template('404.html'), 404
+
+
+@app.errorhandler(403)
+def forbidden_error(error):
+    """Render custom branded 403 page."""
+    return render_template('403.html'), 403
+
+
+@app.errorhandler(429)
+def ratelimit_error(error):
+    """Render custom branded 429 page."""
+    return render_template('429.html'), 429
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Render custom branded 500 page."""
+    return render_template('500.html'), 500
 
 
 if __name__ == '__main__':
