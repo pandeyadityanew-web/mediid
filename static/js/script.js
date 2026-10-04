@@ -39,37 +39,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 4. How SahayID Works - Animated Process Path & Traveling Dot
+    // 4. How SahayID Works - Animated Process Path & Progress Fill
     const processContainer = document.querySelector('.process-flow-container');
     const processSteps = document.querySelectorAll('.process-step-node');
-    const processDot = document.querySelector('.process-traveling-dot');
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const processTrackFill = document.getElementById('processTrackFill');
 
-    if (processContainer && processSteps.length > 0 && !prefersReducedMotion) {
-        const observerOptions = {
-            root: null,
-            rootMargin: '0px 0px -15% 0px',
-            threshold: 0.2
-        };
+    if (processContainer && processSteps.length > 0) {
+        const updateTimeline = () => {
+            const viewportMiddle = window.innerHeight * 0.65;
+            let activeCount = 0;
 
-        const stepObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('step-active');
-                    const stepIndex = parseInt(entry.target.dataset.stepIndex || '1', 10);
-                    if (processDot) {
-                        const progressPct = ((stepIndex - 1) / Math.max(1, processSteps.length - 1)) * 100;
-                        processDot.style.top = `${progressPct}%`;
-                        processDot.classList.add('dot-pulsing');
-                    }
+            processSteps.forEach((step, idx) => {
+                const rect = step.getBoundingClientRect();
+                if (rect.top <= viewportMiddle) {
+                    step.classList.add('step-active');
+                    activeCount = idx + 1;
+                } else if (idx > 0) {
+                    step.classList.remove('step-active');
                 }
             });
-        }, observerOptions);
 
-        processSteps.forEach((step, idx) => {
-            step.dataset.stepIndex = idx + 1;
-            stepObserver.observe(step);
-        });
+            // Ensure first step is active if container is at or above viewport
+            const containerRect = processContainer.getBoundingClientRect();
+            if (containerRect.top <= viewportMiddle && activeCount === 0) {
+                processSteps[0].classList.add('step-active');
+                activeCount = 1;
+            }
+
+            if (processTrackFill && activeCount > 0) {
+                const fillPct = ((activeCount - 1) / Math.max(1, processSteps.length - 1)) * 100;
+                processTrackFill.style.height = `${fillPct}%`;
+            }
+        };
+
+        window.addEventListener('scroll', updateTimeline, { passive: true });
+        window.addEventListener('resize', updateTimeline, { passive: true });
+        updateTimeline();
     }
 
     // 5. Doctor Access Request Live Status Polling
