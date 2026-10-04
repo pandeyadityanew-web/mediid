@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emergency Verification - SahayID {{ medi_id }}</title>
+    <title>Emergency Break-Glass Access - SahayID {{ medi_id }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
 </head>
 <body>
     <!-- Top Emergency Header -->
     <header class="navbar" style="border-bottom: 2px solid var(--emergency);">
         <div class="nav-container">
             <a href="{{ url_for('index') }}" class="nav-brand brand-logo-wrap">
-                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SahayID - CRITICAL MEDICAL ACCESS" class="brand-logo-img">
+                <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
+                <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
                 <span style="display:none;">MediID</span>
             </a>
-            <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Verification Required</span>
+            <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Break-Glass Verification</span>
         </div>
     </header>
 
@@ -30,24 +33,27 @@
             {% endif %}
         {% endwith %}
 
-        <div class="auth-container" style="max-width: 580px;">
+        <div class="auth-container" style="max-width: 600px;">
             <div class="auth-card" style="border-top: 4px solid var(--emergency);">
                 <div class="auth-header">
-                    <div style="width: 50px; height: 50px; border-radius: 50%; background-color: var(--emergency-light); color: var(--emergency); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <div style="width: 52px; height: 52px; border-radius: 50%; background-color: var(--emergency-light); color: var(--emergency); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                         </svg>
                     </div>
 
-                    <h1 class="auth-title">Emergency Medical Access</h1>
-                    <p class="auth-subtitle">Patient SahayID: <strong style="font-family: monospace; color: var(--primary);">{{ medi_id }}</strong></p>
+                    <h1 class="auth-title">Emergency Break-Glass Access</h1>
+                    <span style="display:none;">Emergency Medical Access</span>
+                    <p class="auth-subtitle" style="color: var(--emergency); font-weight: 600;">
+                        Use only when immediate access to critical medical information is necessary.
+                    </p>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Patient SahayID: <strong style="font-family: monospace; color: var(--primary);">{{ medi_id }}</strong>
+                    </p>
                 </div>
 
-                <div class="status-pill" style="border-left: 4px solid var(--emergency); background-color: #fff1f2; margin-bottom: 1.5rem;">
-                    <span class="status-indicator" style="background-color: var(--emergency);"></span>
-                    <span style="font-size: 0.85rem; color: #9f1239;">
-                        This access is intended for emergency situations. Access to medical information is logged for patient safety and privacy.
-                    </span>
+                <div class="emergency-tier-notice">
+                    <strong>Critical Emergency Protocol:</strong> This break-glass protocol unlocks temporary access (10 minutes) strictly to critical emergency health data: Blood Group, Allergies, Critical Conditions, Critical Medications, and Next-of-Kin Emergency Contacts. Non-critical history is withheld.
                 </div>
 
                 <form action="{{ url_for('emergency_verify', medi_id=medi_id) }}" method="POST">
@@ -58,20 +64,20 @@
                             id="responder_name" 
                             name="responder_name" 
                             class="form-input" 
-                            placeholder="e.g. Dr. Johnathan Clark, Paramedic Jane Smith"
+                            placeholder="e.g. Paramedic Jane Smith, Officer Robert Taylor"
                             value="{{ responder_name or '' }}"
                             required
                         >
                     </div>
 
                     <div class="form-group">
-                        <label for="organization" class="form-label">Organization / Hospital / Agency (Optional)</label>
+                        <label for="organization" class="form-label">Organization / Hospital / Ambulance / Emergency Service</label>
                         <input 
                             type="text" 
                             id="organization" 
                             name="organization" 
                             class="form-input" 
-                            placeholder="e.g. Metro General Hospital, City EMS Unit 4"
+                            placeholder="e.g. City Emergency Medical Services, Trauma Ambulance 07"
                             value="{{ organization or '' }}"
                         >
                     </div>
@@ -83,33 +89,37 @@
                             id="reason" 
                             name="reason" 
                             class="form-input" 
-                            placeholder="e.g. Unconscious road trauma, acute anaphylaxis, ER triage"
+                            placeholder="e.g. Unresponsive acute collapse, road accident triage"
                             value="{{ reason or '' }}"
                             required
                         >
                     </div>
 
-                    <div class="form-group" style="margin-top: 1.25rem;">
-                        <label class="form-checkbox" style="align-items: flex-start; gap: 0.75rem;">
-                            <input type="checkbox" id="confirm_emergency" name="confirm_emergency" required style="margin-top: 0.25rem;">
-                            <span style="font-size: 0.875rem; color: var(--text-main); line-height: 1.5;">
-                                <strong>I confirm that this information is being accessed for an emergency medical purpose.</strong>
+                    <div class="form-group" style="margin-top: 1.5rem; background: #fff1f2; border: 1px solid #fecdd3; padding: 1rem; border-radius: var(--radius-sm);">
+                        <label class="form-checkbox" style="align-items: flex-start; gap: 0.75rem; cursor: pointer;">
+                            <input type="checkbox" id="confirm_emergency" name="confirm_emergency" required style="margin-top: 0.3rem;">
+                            <span style="font-size: 0.875rem; color: #881337; line-height: 1.5;">
+                                <strong>I understand that this emergency access is logged, limited to critical information, and intended only for urgent medical situations.</strong>
+                                <span style="display:block; margin-top: 0.25rem; font-size: 0.8rem; color: #9f1239;">
+                                    I confirm that this information is being accessed for an emergency medical purpose.
+                                </span>
                             </span>
                         </label>
                     </div>
 
                     <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;">
-                        <button type="submit" class="btn btn-primary btn-block" style="background-color: var(--emergency); border-color: var(--emergency); padding: 0.75rem 1rem;">
-                            Request Emergency Access
+                        <button type="submit" class="btn btn-primary btn-block" style="background-color: var(--emergency); border-color: var(--emergency); padding: 0.85rem 1.25rem; font-weight: 700;">
+                            Unlock Emergency Break-Glass Access
+                            <span style="display:none;">Request Emergency Access</span>
                         </button>
                         <a href="{{ url_for('emergency_access', medi_id=medi_id) }}" class="btn btn-secondary btn-block">
-                            Cancel & Return
+                            Cancel & Return to Gateway
                         </a>
                     </div>
                 </form>
 
-                <div class="auth-footer" style="font-size: 0.8rem;">
-                    Notice: Emergency access tokens expire automatically in 10 minutes. All access attempts record network IP and timestamp to the patient audit log.
+                <div class="auth-footer" style="font-size: 0.8rem; margin-top: 1.5rem;">
+                    Notice: Emergency break-glass tokens expire automatically in 10 minutes. All access events log responder identity, IP address, and network timestamp into the permanent patient audit trail.
                 </div>
             </div>
         </div>
@@ -117,8 +127,8 @@
 
     <footer class="footer">
         <div class="footer-content">
-            <div class="footer-brand">SahayID Emergency Portal © 2026</div>
-            <div class="footer-note">Confidential First Responder Clinical Gateway</div>
+            <div class="footer-brand">SahayID Emergency Portal &copy; 2026</div>
+            <div class="footer-note">CRITICAL MEDICAL ACCESS &bull; Confidential First Responder Clinical Gateway</div>
         </div>
     </footer>
 

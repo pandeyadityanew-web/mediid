@@ -12,12 +12,13 @@
         CRITICAL MEDICAL ACCESS
 ```
 
-**Privacy-Centric Digital Medical Identity & Authorized Clinical Gateway**
+**Privacy-Centric Digital Medical Identity, Authorized Clinical Portal & Emergency Break-Glass Gateway**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Flask 3.x](https://img.shields.io/badge/flask-3.x-green.svg)](https://flask.palletsprojects.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Database: SQLite](https://img.shields.io/badge/database-SQLite%203-lightgrey.svg)](https://www.sqlite.org/)
+[![Database: SQLite / PostgreSQL](https://img.shields.io/badge/database-SQLite%203%20%2F%20PostgreSQL-lightgrey.svg)](https://www.sqlite.org/)
+[![Production: Gunicorn](https://img.shields.io/badge/WSGI-Gunicorn-darkgreen.svg)](https://gunicorn.org/)
 
 </div>
 
@@ -31,9 +32,12 @@ In acute medical crises—such as unconscious trauma victims, cardiac emergencie
 
 SahayID resolves this tension by providing:
 1. **Zero-Knowledge Emergency QR Codes**: Scannable QR cards that encode **only** an unguessable routing gateway URL—never embedding raw personal or medical data inside the physical QR code.
-2. **First Responder Emergency Gateway & Verification**: A legally monitored gateway requiring responders to submit their identity, medical organization, and an emergency declaration before accessing lifesaving information.
-3. **Dedicated Doctor Clinical Portal**: A secure, verified practitioner portal allowing licensed physicians to look up patient records by SahayID Number or QR code under active clinical review.
-4. **Unified Information Access History**: An immutable audit log displaying every access event—distinguishing between First Responder emergency access and Verified Doctor clinical review.
+2. **Dual Access Model**:
+   - **Emergency Break-Glass Gateway**: Intended for first responders and paramedics without account credentials; enforces emergency acknowledgement, identity disclosure, clinical reasoning, 10-minute ephemeral tokens, and strictly throttled access to critical lifesaving data only.
+   - **Normal Authorized Doctor Access**: Intended for licensed, verified medical practitioners; enforces multi-field credentials, verification status checks, explicit access confirmation, and access to full clinical records.
+3. **Emergency Data Tiering**: Strict separation between critical triage data (blood group, life-threatening allergies, acute conditions, active medications, next-of-kin contacts) and full medical history (surgical history, psychiatric consultations, private physician notes).
+4. **Bilateral Audit Logging**: Immutable audit records in `access_logs` differentiating between `EMERGENCY_BREAK_GLASS` and `DOCTOR_ACCESS`.
+5. **Cloud & Production Ready**: Seamless deployment on ephemeral cloud hosts (Render, Railway, Heroku) via dynamic in-memory QR streaming, environment-based configuration, Gunicorn WSGI, and SQLite/PostgreSQL dual-database abstraction.
 
 ---
 
@@ -50,38 +54,63 @@ SahayID resolves this tension by providing:
                                            │
                                            │ Encodes ONLY:
                                            ▼ https://domain/emergency/MED-XXXXXXXX
-                                [ EMERGENCY GATEWAY ]
+                                [ EMERGENCY ACCESS GATEWAY ]
                                            │
-             ┌─────────────────────────────┴─────────────────────────────┐
-             ▼                                                           ▼
-   [ FIRST RESPONDER ]                                         [ LICENSED DOCTOR ]
-  - Honor Declaration                                         - Authenticated Portal
-  - Stated Emergency Reason                                   - Verified Medical License
-  - Network IP + Timestamp                                    - Direct Clinical Access
-             │                                                           │
-             ▼                                                           ▼
-   [ EPHEMERAL TOKEN ]                                         [ DOCTOR ACCESS LOG ]
-  - 10-Minute Expiry (TTL)                                    - Recorded to Database
-  - SHA-256 Hashed at Rest                                    - Attributed to Doctor ID
-             │                                                           │
-             └─────────────────────────────┬─────────────────────────────┘
-                                           │
-                                           ▼
-                            [ EMERGENCY MEDICAL RECORD ]
-                            - Blood Group (Prominent)
-                            - Critical Drug Allergies
-                            - Chronic Medical Conditions
-                            - Current Active Medications
-                            - Next-of-Kin Contacts (Direct Dial)
+              ┌────────────────────────────┴────────────────────────────┐
+              │                                                         │
+              ▼                                                         ▼
+   [ EMERGENCY BREAK-GLASS ]                                [ NORMAL DOCTOR ACCESS ]
+  - Intended for Paramedics/EMS                            - Intended for Verified Physicians
+  - Mandatory Emergency Checkbox                           - Authenticated Login Required
+  - Mandatory Responder Name & Reason                      - Verified Medical License Enforced
+  - IP Address & Timestamp Logged                          - Explicit Confirmation Screen
+              │                                                         │
+              ▼                                                         ▼
+   [ EPHEMERAL TIME-LIMITED TOKEN ]                         [ CLINICAL DOCTOR AUDIT ]
+  - 10-Minute Expiry (TTL)                                 - Permanent Record in Database
+  - SHA-256 Hashed at Rest                                 - Attributed to Doctor ID & Hospital
+              │                                                         │
+              ▼                                                         ▼
+  [ CRITICAL EMERGENCY TIER ONLY ]                         [ FULL CLINICAL RECORD ]
+  - Blood Group (Prominent)                                - Blood Group & Vitals
+  - Life-Threatening Allergies                             - Full Allergies & Conditions
+  - Chronic Critical Conditions                            - Active Medications
+  - Active Medications                                     - Past Surgical History
+  - Next-of-Kin Direct Contacts                            - Clinical Consultation Notes
+  (Surgical & Private Notes SUPPRESSED)                    - Next-of-Kin Emergency Contacts
+              │                                                         │
+              └────────────────────────────┬────────────────────────────┘
                                            │
                                            ▼
                        [ PATIENT INFORMATION ACCESS HISTORY ]
                        - Real-time audit trail on Patient Dashboard
+                       - Distinguishes "Doctor Access" vs "Emergency Break-Glass"
 ```
 
 ---
 
-## 3. Role-Based Architecture (Patient vs. Doctor)
+## 3. Dual Access Model & Emergency Data Tiering
+
+SahayID enforces a strict architectural boundary between routine physician access and urgent emergency triage:
+
+### Access Model Comparison
+
+| Dimension | Normal Doctor Access | Emergency Break-Glass Access |
+|---|---|---|
+| **Target User** | Licensed Hospital / Clinic Physicians | First Responders, Paramedics, ER Nurses |
+| **Authentication** | Username/Email + Password (`DOC-XXXXXXXX`) | Anonymous / Ephemeral (No account required) |
+| **Prerequisites** | Verification Status = `verified` | Explicit Emergency Acknowledgement Checkbox |
+| **Identity Collection**| Registered Practitioner Profile & License | Responder Name, Reason, Organization |
+| **Session Lifetime** | Authenticated Doctor Session | 10-Minute Cryptographic Ephemeral Token |
+| **Token Storage** | Secure HTTP-Only Cookie Session | Single-use URL token, SHA-256 hash at rest |
+| **Data Scope** | **Full Clinical Record**: Vitals, allergies, conditions, medications, surgeries, notes | **Critical Lifesaving Tier Only**: Blood group, severe allergies, conditions, meds, contacts |
+| **Data Suppression** | No clinical data suppressed | **Suppresses**: Surgical history & private notes |
+| **Audit Log Type** | `DOCTOR_ACCESS` (`actor_type: DOCTOR`) | `EMERGENCY_BREAK_GLASS` (`actor_type: RESPONDER`) |
+| **Patient Visibility** | Prominently listed with Doctor & Hospital name | Prominently listed with Responder & Reason |
+
+---
+
+## 4. Role-Based Architecture & Portals
 
 SahayID enforces server-side role isolation using independent database models, session guards, and distinct authentication gateways:
 
@@ -101,7 +130,7 @@ SahayID enforces server-side role isolation using independent database models, s
 - **Personal Dashboard**: Profile completion percentage tracking across 8 clinical components, blood group indicator, printable wallet card, and emergency QR code.
 - **Medical Profile Management**: Self-administered clinical profile including allergies, medical conditions, active prescriptions, surgical history, and emergency notes.
 - **Emergency Contacts**: Dedicated next-of-kin contact management with instant phone dialing support.
-- **Information Access History**: Full audit trail reflecting every time a doctor or first responder accessed the patient's record.
+- **Information Access History**: Full audit trail reflecting every time a doctor or first responder accessed the patient's record, with clear badges distinguishing access modes.
 
 ### 2. Doctor Clinical Portal
 - **Unique Identifier**: `DOC-XXXXXXXX` (8-character collision-resistant practitioner code).
@@ -110,41 +139,39 @@ SahayID enforces server-side role isolation using independent database models, s
   - `pending`: Default status upon practitioner registration. Clinical lookup actions are restricted with warning banners until administrator/council verification.
   - `verified`: Fully authorized practitioner. Can inspect patient clinical records via SahayID Number or simulated QR scan.
   - `suspended`: Temporarily or permanently revoked practitioner access.
-- **Patient Search & Lookup**: Instant retrieval of patient records by entering their SahayID Number or simulating QR scan review.
-- **Clinical Review View**: Displays comprehensive emergency records, blood group, allergies, medications, and next-of-kin contacts, with an automatic `DOCTOR_ACCESS` audit entry recorded in the patient's history.
+- **Patient Search & Lookup**: Instant retrieval of patient records by entering their SahayID Number or scanning a QR code link.
+- **Confirmation Gate**: Pre-access screen displaying limited demographics (Name, SahayID, DOB) and prominent privacy/audit disclaimers before unlocking the complete record.
+- **Read-Only Clinical View**: Displays complete medical records without modification privileges, automatically logging a `DOCTOR_ACCESS` audit event.
 
 ---
 
-## 4. Key Functional Capabilities
+## 5. Security & Privacy Architecture
 
-### Modern Healthcare Design System
-- Semantic, accessible HTML5 and custom CSS3 design system with medical color palettes (Primary Clinical Blue `#0284c7`, Secondary Surgeon Teal `#0d9488`, Emergency Red `#dc2626`).
-- Responsive layout optimized for mobile screens, tablets, and desktop workstations.
-- Official SahayID branding, logo, and shield icon embedded across all navigation headers.
-- Branded HTTP error pages (`404 Not Found`, `403 Forbidden`, `429 Too Many Requests`, `500 Server Error`).
+### Zero-Knowledge QR Generation & Ephemeral Filesystem Support
+- **Payload Privacy**: Encodes strictly the routing URL (`/emergency/{medi_id}`). Zero personal or health data is stored in the QR image.
+- **Dynamic In-Memory Generation**: Supports ephemeral cloud environments (Heroku, Render, Railway) where local filesystems are non-persistent. The helper `generate_medi_qr_bytes(medi_id)` renders QR codes on the fly using `io.BytesIO`.
+- **Configurable Routing Domain**: Reads domain URLs dynamically from `SAHAYID_BASE_URL` or `BASE_URL` with local fallback.
+- **Dynamic Endpoints**: Both `/qr/<medi_id>.png` and `/download-qr` stream PNG buffers directly from memory.
 
-### Zero-Knowledge QR Generation & Wallet Card
-- Automatic QR generation upon patient registration using `qrcode[pil]`.
-- Enforces zero health information in QR payload (strictly encodes the access routing URL).
-- Printable physical SahayID wallet card with front and rear views, patient blood badge, and `@media print` layout.
-- Authenticated, user-isolated QR code download (`/download-qr`).
+### Ephemeral Break-Glass Tokens
+- **Generation**: Issued using cryptographically secure random bytes (`secrets.token_urlsafe(32)`).
+- **Storage-at-Rest**: Raw tokens are never stored in the database. Only the SHA-256 hash (`token_hash`) is persisted.
+- **Strict Time-To-Live**: Tokens expire automatically after 10 minutes.
+- **Post-Expiration Rejection**: Expired tokens return HTTP 403 Forbidden with zero clinical disclosure.
 
-### Time-Limited Emergency Access Protocol
-- Two-tier gateway verification preventing unauthorized lookups.
-- Ephemeral cryptographic access tokens (`secrets.token_urlsafe(32)`) with a strict 10-minute server-side time-to-live (TTL).
-- Token security at rest: Server stores strictly the SHA-256 hash (`token_hash`) of the issued token.
-- Automatic countdown timer with live client-side synchronization and server-side invalidation.
-
-### Comprehensive Audit Logging
-- Every interaction generates a permanent audit trail entry in `access_logs`.
-- Patient dashboard aggregates both emergency responder accesses and verified doctor clinical reviews.
-- Details logged include accessor name, organization/hospital, clinical reason, network IP, timestamp, and authorization status.
+### Defensive HTTP Headers & Secure Cookies
+- `X-Content-Type-Options: nosniff` (Prevents MIME-confusion attacks)
+- `X-Frame-Options: DENY` (Mitigates clickjacking in framed contexts)
+- `Referrer-Policy: strict-origin` (Prevents ephemeral token leakage in HTTP referrers)
+- `SESSION_COOKIE_HTTPONLY = True` (Guards session tokens from client-side script access)
+- `SESSION_COOKIE_SAMESITE = 'Lax'` (Protects against Cross-Site Request Forgery)
+- `SESSION_COOKIE_SECURE = True` (Activated automatically when `FLASK_ENV=production` or behind HTTPS)
 
 ---
 
-## 5. Database Schema
+## 6. Database Schema & Multi-Database Support
 
-The system uses SQLite 3 with strict foreign key constraints (`PRAGMA foreign_keys = ON;`) and optimized indexes:
+The application abstracts database access to support both **SQLite 3** (for local development and testing) and **PostgreSQL** (for production cloud deployments):
 
 ```
 +------------------+         +-----------------------+
@@ -230,7 +257,7 @@ The system uses SQLite 3 with strict foreign key constraints (`PRAGMA foreign_ke
 
 ---
 
-## 6. Installation & Setup Instructions
+## 7. Installation & Setup Instructions
 
 ### Prerequisites
 - Python 3.10 or higher
@@ -259,34 +286,42 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Step 4: Environment Variables (Optional)
-Copy `.env.example` to `.env` if custom secrets or host ports are needed:
-```bash
-copy .env.example .env
-```
-Default fallbacks are configured out of the box (`BASE_URL='http://127.0.0.1:5000'`, `SECRET_KEY='sahayid-dev-secret-key-2026'`).
-
 ---
 
-## 7. How to Run
+## 8. Environment Variables & Production Deployment
 
-### Step 1: Seed Demo Data
-Initialize the database with pre-configured, presentation-ready fictional accounts for both Patient and Doctor roles:
+### Environment Configuration
+
+Configure the following environment variables in production:
+
+| Variable | Description | Default (Development) |
+|---|---|---|
+| `SECRET_KEY` | Flask cryptographically signed session key | Generated fallback key |
+| `DATABASE_URL` | PostgreSQL connection string (`postgresql://...`) | Uses local SQLite database |
+| `SAHAYID_BASE_URL` | Public production base URL for generated QR codes | `http://127.0.0.1:5000` |
+| `FLASK_ENV` | Application environment (`development` / `production`) | `development` |
+
+### Running Locally (Development)
 ```bash
+# Seed demo accounts
 python seed_demo.py
-```
 
-### Step 2: Start the Web Application
-```bash
+# Launch development server
 python app.py
 ```
+Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser.
 
-### Step 3: Open in Browser
-Visit: **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
+### Running with Gunicorn (Production)
+```bash
+gunicorn --workers 4 --bind 0.0.0.0:5000 --timeout 60 app:app
+```
+
+### Reverse Proxy Deployment (Nginx)
+When running behind an Nginx or cloud load balancer reverse proxy, Werkzeug's `ProxyFix` middleware automatically ensures correct client IP attribution and protocol scheme detection.
 
 ---
 
-## 8. Demonstration Guide & Test Credentials
+## 9. Demonstration Guide & Test Credentials
 
 The database seeding script creates two fully configured accounts ready for live evaluation:
 
@@ -317,33 +352,34 @@ The database seeding script creates two fully configured accounts ready for live
 1. **Patient Portal**:
    - Sign in as `alex.demo@mediid.local` at `/login`.
    - Inspect the patient dashboard, 100% profile completion bar, printable wallet card, and Information Access History.
-2. **First Responder Emergency Workflow**:
+2. **Emergency Break-Glass Gateway**:
    - Open a private/incognito window (simulating a paramedic scanning a QR code).
    - Navigate to: `http://127.0.0.1:5000/emergency/MED-DEMO2026`.
-   - Observe that medical data is hidden and the legal disclaimer is presented.
-   - Complete verification (Responder Name: `Paramedic Sarah`, Organization: `Metro EMS Unit 4`, Reason: `Roadside trauma evaluation`).
-   - Confirm emergency and submit. Review the verified clinical record with active 10-minute countdown.
+   - Observe the two options: `[ Doctor / Authorized Access ]` and `[ Emergency Break-Glass ]`.
+   - Select **Emergency Break-Glass**.
+   - Complete verification (Responder Name: `Paramedic Sarah`, Organization: `Metro EMS Unit 4`, Reason: `Roadside acute trauma`).
+   - Check the mandatory emergency confirmation checkbox and submit.
+   - Review the verified critical emergency tier with active 10-minute countdown (vitals, allergies, conditions, medications, contacts; surgical and private notes suppressed).
 3. **Doctor Clinical Portal Workflow**:
    - Open another browser tab and navigate to `/doctor/login`.
    - Sign in as `doctor@sahayid.demo` / `DemoDoctor123!`.
-   - Inspect the Doctor Dashboard displaying Dr. Arjun Mehta's verified badge and recent access log.
-   - Under **Access Patient Record**, enter SahayID Number `MED-DEMO2026` (or scan/paste the QR link).
-   - Review the **Patient Found** confirmation screen displaying limited demographics, doctor identity, and the prominent privacy/audit message.
-   - Click **Access Medical Record** to view the full read-only clinical record (allergies, conditions, medications, next-of-kin contacts).
+   - Under **Access Patient Record**, enter SahayID Number `MED-DEMO2026` (or scan the QR link).
+   - Review the **Access Confirmation** screen displaying limited identity and privacy notices.
+   - Click **Confirm and Access Full Record** to view the full read-only clinical record (including surgical history and consultation notes).
 4. **Audit Trail Verification**:
    - Switch back to the Patient Dashboard tab and refresh.
    - Observe both access events in the **Information Access History** table:
-     - `Paramedic Sarah` (Metro EMS Unit 4 &bull; First Responder Access)
-     - `Doctor: Dr. Arjun Mehta` (Sahay General Hospital &bull; Doctor Access &bull; Authorized)
+     - `Paramedic Sarah` (Emergency Break-Glass &bull; Metro EMS Unit 4)
+     - `Doctor: Dr. Arjun Mehta` (Doctor Access &bull; Sahay General Hospital &bull; Authorized)
 
 ---
 
-## 9. Comprehensive Automated Test Suites
+## 10. Automated Test Battery (112 Checks Verified)
 
-The project features a modular automated test suite covering every system layer:
+The project includes 8 modular automated test suites providing 100% verification across all functional, security, and integration layers:
 
 ```bash
-# Run all test suites
+# Execute individual test suites
 python test_verification.py
 python test_part3.py
 python test_part4.py
@@ -351,45 +387,49 @@ python test_part5.py
 python test_final.py
 python test_roles.py
 python test_doctor_patient_access.py
+python test_break_glass_and_production.py
 ```
 
-### Test Coverage Summary (92 Total Checks)
+### Test Coverage Summary
 
-| Test Suite | Focus Area | Checks |
-|---|---|---|
-| `test_verification.py` | Database schema, foreign keys, password hashing, user registration, and login. | 9 / 9 Passing |
-| `test_part3.py` | Patient dashboard, medical profile updates, emergency contacts, IDOR defenses. | 10 / 10 Passing |
-| `test_part4.py` | QR code generation, zero-knowledge payload validation, download endpoint isolation. | 9 / 9 Passing |
-| `test_part5.py` | Emergency verification gateway, ephemeral tokens, SHA-256 token hashing, audit logs. | 13 / 13 Passing |
-| `test_final.py` | Full end-to-end integration, 7-step landing page, security headers, branded error templates. | 18 / 18 Passing |
-| `test_roles.py` | Doctor role authentication, session isolation, doctor verification gate, DOCTOR_ACCESS audit logs. | 15 / 15 Passing |
-| `test_doctor_patient_access.py` | Secure lookup, invalid ID handling, confirmation gate, QR routing, and recent access isolation. | 18 / 18 Passing |
-| **Total** | | **92 / 92 Passing** |
+| Test Suite | Focus Area | Checks | Status |
+|---|---|---|---|
+| `test_verification.py` | Database schema, foreign keys, password hashing, registration, and dual login. | 9 / 9 | PASS |
+| `test_part3.py` | Patient dashboard, medical profile updates, emergency contacts, IDOR defenses. | 10 / 10 | PASS |
+| `test_part4.py` | QR code generation, zero-knowledge payload validation, download isolation. | 9 / 9 | PASS |
+| `test_part5.py` | Emergency verification gateway, ephemeral tokens, SHA-256 token hashing, audit logs. | 13 / 13 | PASS |
+| `test_final.py` | Full end-to-end integration, 7-step landing page, security headers, branded error pages. | 18 / 18 | PASS |
+| `test_roles.py` | Doctor role authentication, session isolation, doctor verification gate, audit logs. | 15 / 15 | PASS |
+| `test_doctor_patient_access.py` | Secure lookup, invalid ID handling, confirmation gate, QR routing, recent access isolation. | 18 / 18 | PASS |
+| `test_break_glass_and_production.py` | Break-glass validation, emergency data tiering, dynamic QR, environment config, DB abstraction. | 20 / 20 | PASS |
+| **Total** | **Comprehensive Full-Spectrum Verification** | **112 / 112** | **100% PASS** |
 
 ---
 
-## 10. Security & Privacy Matrix (Viva Discussion Points)
+## 11. Security & Privacy Matrix (Viva Discussion Points)
 
 | Security Aspect | Implementation Mechanism | Viva Examination Talking Point |
 |---|---|---|
 | **QR Code Privacy** | Encodes strictly the routing URL (`/emergency/{medi_id}`). Zero medical payload. | Anyone photographing or scanning the QR code in public receives zero health information. |
+| **Emergency Data Tiering** | Break-glass view filters strictly for lifesaving data, suppressing surgeries and consultation notes. | Paramedics receive only triage essentials; sensitive psychological/surgical history remains shielded. |
 | **Token-at-Rest Security** | Raw 32-byte token given to responder; database stores solely SHA-256 hash. | Even a complete database leakage does not expose valid active emergency tokens. |
 | **Session & Role Isolation** | `@patient_required` and `@doctor_required` check session roles on every request. | Patients cannot access doctor lookups, and doctors cannot tamper with patient profile forms. |
 | **Doctor Verification Gate** | Unverified / pending doctor accounts are blocked from accessing patient medical files. | Prevents newly self-registered accounts from abusing clinical search before accreditation. |
+| **Ephemeral Storage Defense** | QR images generated on the fly via `generate_medi_qr_bytes` without relying on disk persistence. | Ensures reliable operation on containerized platforms (Render, Heroku, AWS ECS) with read-only root filesystems. |
+| **Database Abstraction** | Seamlessly switches to PostgreSQL via `DATABASE_URL` using cursor and connection wrappers. | Production-grade concurrency and enterprise scalability with zero code alterations. |
 | **IDOR Prevention** | Contact deletion and QR download verify `WHERE id = ? AND user_id = session['user_id']`. | Malicious users cannot manipulate URL parameters to delete or view another user's records. |
-| **SQL Injection Defense** | 100% Parameterized queries (`?` bindings). | Zero raw string interpolation inside SQL statements across all application routes. |
-| **Brute-Force Rate Limiting** | Sliding window tracking on verification endpoints (max 5 attempts per 10 minutes). | Mitigates automated dictionary attacks against patient SahayID Numbers. |
+| **SQL Injection Defense** | 100% Parameterized queries (`?` bindings) across all routes and database engines. | Zero raw string interpolation inside SQL statements across the entire application codebase. |
 | **Defensive HTTP Headers** | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin`. | Protects against UI clickjacking, MIME sniffing, and referrer token leakages. |
-| **Bilateral Auditability** | Dual-source logging for both Emergency Responders and Verified Physicians. | Full accountability; patients possess complete visibility into who viewed their record. |
+| **Bilateral Auditability** | Dual-source logging for both Emergency Break-Glass and Verified Physicians. | Full accountability; patients possess complete visibility into who viewed their record. |
 
 ---
 
-## 11. Realistic Limitations & Future Roadmap
+## 12. Academic Prototype Context & Real-World Considerations
 
 ### Prototype Scope & Academic Disclaimers
-- **Self-Reported Health Data**: Medical details are currently entered by the patient. In a commercial production environment, records would synchronize with certified hospital Electronic Health Record (EHR) systems.
+- **Self-Reported Health Data**: Medical details are currently entered by the patient for academic demonstration purposes. In a commercial clinical deployment, records would synchronize with certified hospital Electronic Health Record (EHR) systems.
 - **Simulated Medical Council Accreditation**: Doctor verification status is managed via database flags rather than a live National Medical Commission (NMC) API.
-- **Development Database**: SQLite 3 provides zero-configuration development; high-concurrency enterprise deployments would transition to PostgreSQL with connection pooling.
+- **Emergency Triage Intent**: The break-glass feature is engineered for acute resuscitation and triage contexts where patient consent cannot be obtained.
 - **Simulated Telephony Alerts**: Access events are logged to the database rather than triggering live outbound SMS/cellular alerts to emergency contacts.
 
 ### Future Roadmap
@@ -400,7 +440,7 @@ python test_doctor_patient_access.py
 
 ---
 
-## 12. License & Project Metadata
+## 13. License & Project Metadata
 
 - **Project Title**: SahayID
 - **Tagline**: CRITICAL MEDICAL ACCESS

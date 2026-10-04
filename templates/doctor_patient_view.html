@@ -5,14 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clinical Record: {{ patient['full_name'] }} - SahayID</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/icon.svg') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
 </head>
 <body>
     <!-- Authenticated Doctor Navigation Header -->
     <header class="navbar" style="border-bottom: 2px solid var(--secondary);">
         <div class="nav-container">
             <a href="{{ url_for('doctor_dashboard') }}" class="brand-logo-wrap">
-                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SahayID - CRITICAL MEDICAL ACCESS" class="brand-logo-img">
+                <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
+                <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
                 <span style="display:none;">MediID</span>
             </a>
             <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>

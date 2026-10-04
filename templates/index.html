@@ -3,16 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SahayID - CRITICAL MEDICAL ACCESS</title>
+    <title>SahayID - Critical Medical Access</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/icon.svg') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <meta property="og:title" content="SahayID - Critical Medical Access">
+    <meta property="og:description" content="Secure digital medical identity system connecting patients, verified doctors, and emergency responders.">
+    <meta property="og:image" content="{{ url_for('static', filename='images/sahayid-logo.jpg') }}">
 </head>
 <body>
     <!-- Navigation Header -->
     <header class="navbar">
         <div class="nav-container">
             <a href="{{ url_for('index') }}" class="brand-logo-wrap">
-                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SahayID - CRITICAL MEDICAL ACCESS" class="brand-logo-img">
+                <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
+                <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
                 <span style="display:none;">MediID</span>
             </a>
             <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
@@ -50,8 +55,12 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Hero Section -->
+        <!-- Hero Section with Background ECG Wave & Official SahayID Logo -->
         <section class="hero">
+            <div class="hero-brand-container">
+                <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="hero-brand-logo">
+            </div>
+
             <div class="hero-badge">
                 <span class="status-indicator"></span>
                 <span>CRITICAL MEDICAL ACCESS</span>
@@ -69,7 +78,7 @@
             <div class="hero-actions">
                 <a href="{{ url_for('register') }}" class="btn btn-primary">Create Your SahayID</a>
                 <a href="{{ url_for('login') }}" class="btn btn-secondary">Patient Login</a>
-                <a href="{{ url_for('doctor_login') }}" class="btn btn-secondary" style="border-color: var(--secondary); color: var(--secondary);">Doctor Portal</a>
+                <a href="{{ url_for('doctor_login') }}" class="btn btn-secondary" style="border-color: #38bdf8; color: #38bdf8;">Doctor Portal</a>
             </div>
         </section>
 

@@ -194,10 +194,54 @@ a:hover {
 
 /* Hero Section */
 .hero {
-  padding: 3rem 1rem 4rem;
+  position: relative;
+  padding: 3.5rem 2rem 4rem;
   text-align: center;
-  max-width: 820px;
-  margin: 0 auto;
+  max-width: 920px;
+  margin: 1.5rem auto 3rem;
+  background-color: #0c2340;
+  background-image: linear-gradient(180deg, rgba(12, 35, 64, 0.88) 0%, rgba(15, 23, 42, 0.94) 100%), url('../images/ecg-bg.png');
+  background-repeat: repeat-x;
+  background-position: center bottom;
+  background-size: contain;
+  border-radius: var(--radius-lg);
+  color: #ffffff;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.hero-brand-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.hero-brand-logo {
+  width: 130px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  background-color: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+.hero-brand-logo:hover {
+  transform: scale(1.03);
+}
+
+.hero .hero-title {
+  color: #ffffff;
+}
+
+.hero .hero-tagline {
+  color: #38bdf8;
+}
+
+.hero .hero-description {
+  color: #cbd5e1;
 }
 
 .hero-badge {
@@ -554,7 +598,7 @@ a:hover {
 }
 
 /* ==========================================================================
-   Dashboard & Patient Management (Part 3)
+   Dashboard & Patient Management
    ========================================================================== */
 
 /* Dashboard Header & Summary */
@@ -808,7 +852,7 @@ a:hover {
 }
 
 /* ==========================================================================
-   Emergency Access & Audit History (Part 5)
+   Emergency Access & Audit History
    ========================================================================== */
 
 .emergency-live-banner {
@@ -1138,8 +1182,23 @@ a:hover {
 
 .brand-logo-img {
   height: 42px;
-  width: auto;
+  width: 42px;
+  object-fit: cover;
+  border-radius: 8px;
   display: block;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.brand-name {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.02em;
+}
+
+.brand-highlight {
+  color: var(--secondary);
 }
 
 .role-toggle-tabs {
@@ -1267,5 +1326,88 @@ a:hover {
   font-size: 1.1rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+/* Emergency Break-Glass & Gateway Access Model */
+.emergency-gateway-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin: 1.5rem 0;
+}
+
+@media (min-width: 640px) {
+  .emergency-gateway-options {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.gateway-option-card {
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--bg-card);
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.gateway-option-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.gateway-option-doctor {
+  border-color: #93c5fd;
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.gateway-option-breakglass {
+  border-color: #fca5a5;
+  background: linear-gradient(180deg, #fff1f2 0%, #ffffff 100%);
+}
+
+.emergency-tier-notice {
+  background-color: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-left: 4px solid var(--emergency);
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-sm);
+  color: #9f1239;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.badge-breakglass {
+  background-color: #ffe4e6;
+  color: #be123c;
+  border: 1px solid #fecdd3;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.badge-doctor-access {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 

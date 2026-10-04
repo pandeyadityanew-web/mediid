@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emergency Clinical Record - SahayID</title>
+    <title>Emergency Break-Glass Record - SahayID</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
 </head>
 <body>
     <!-- Top Emergency Header -->
     <header class="navbar" style="border-bottom: 2px solid var(--emergency);">
         <div class="nav-container">
             <a href="{{ url_for('index') }}" class="nav-brand brand-logo-wrap">
-                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="SahayID - CRITICAL MEDICAL ACCESS" class="brand-logo-img">
+                <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
+                <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
                 <span style="display:none;">MediID</span>
             </a>
-            <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Active Clinical Session</span>
+            <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Emergency Break-Glass</span>
         </div>
     </header>
 
@@ -58,7 +61,7 @@
                             EMERGENCY ACCESS
                         </h1>
                         <p style="margin: 0.25rem 0 0 0; color: #4b5563; font-size: 0.95rem; font-weight: 500;">
-                            Temporary access to patient-provided emergency information
+                            Emergency Break-Glass Access &bull; Limited Critical Information Tier
                         </p>
                     </div>
                 </div>
@@ -71,6 +74,17 @@
                     <span>Session Expires in: <strong id="countdownTimer">10:00</strong></span>
                 </div>
             </section>
+
+            <!-- Limited Critical Tier Notice -->
+            <div class="emergency-tier-notice" style="margin: 1.25rem 0;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                    <span class="badge-breakglass">Emergency Break-Glass Tier</span>
+                    <strong style="color: #9f1239;">Restricted Critical Emergency View</strong>
+                </div>
+                <p style="margin: 0; font-size: 0.875rem; line-height: 1.5;">
+                    This interface is restricted strictly to immediate life-saving medical data: <strong>Blood Group</strong>, <strong>Critical Allergies</strong>, <strong>Critical Conditions</strong>, <strong>Active Medications</strong>, and <strong>Next-of-Kin Emergency Contacts</strong>. Detailed clinical histories, surgical notes, and full practitioner consultations are withheld and accessible only to Authorized Doctors.
+                </p>
+            </div>
 
             <!-- Clinical Disclaimer & Verification Notice -->
             <div class="alert alert-warning" style="margin: 1.25rem 0; background-color: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; color: #92400e; padding: 0.85rem 1.25rem; border-radius: 8px; font-size: 0.925rem; display: flex; align-items: center; gap: 0.75rem;">
@@ -109,7 +123,7 @@
                 </div>
             </div>
 
-            <!-- Critical Medical Essentials Grid -->
+            <!-- Critical Medical Essentials Grid (Strictly Critical Tier - No Surgery or Private Notes) -->
             <div class="dashboard-grid" style="margin-bottom: 2rem;">
                 <!-- Allergies -->
                 <div class="dashboard-card" style="border-top: 3px solid var(--emergency);">
@@ -121,7 +135,7 @@
                                     <line x1="12" y1="9" x2="12" y2="13"></line>
                                     <line x1="12" y1="17" x2="12.01" y2="17"></line>
                                 </svg>
-                                Allergies & Warnings
+                                Critical Allergies
                             </h2>
                             <span class="badge-pill" style="background-color: var(--emergency-light); color: var(--emergency); font-weight: 700;">Critical</span>
                         </div>
@@ -143,8 +157,9 @@
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                                 </svg>
-                                Chronic Conditions
+                                Critical Medical Conditions
                             </h2>
+                            <span class="badge-pill" style="background-color: var(--primary-light); color: var(--primary); font-weight: 700;">Critical</span>
                         </div>
                         <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
                             {{ medical['medical_conditions'] if medical and medical['medical_conditions'] else 'No chronic conditions recorded' }}
@@ -153,7 +168,7 @@
                 </div>
 
                 <!-- Current Medications -->
-                <div class="dashboard-card" style="border-top: 3px solid var(--secondary);">
+                <div class="dashboard-card" style="border-top: 3px solid var(--secondary); grid-column: span 2;">
                     <div class="card-top">
                         <div class="card-title-bar">
                             <h2 class="card-title">
@@ -161,28 +176,12 @@
                                     <path d="M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7z"></path>
                                     <path d="M8.5 8.5l7 7"></path>
                                 </svg>
-                                Current Medications
+                                Critical Medications
                             </h2>
+                            <span class="badge-pill" style="background-color: var(--secondary-light); color: var(--secondary); font-weight: 700;">Critical</span>
                         </div>
                         <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
                             {{ medical['current_medications'] if medical and medical['current_medications'] else 'No active prescriptions recorded' }}
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Previous Surgeries -->
-                <div class="dashboard-card">
-                    <div class="card-top">
-                        <div class="card-title-bar">
-                            <h2 class="card-title">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                                </svg>
-                                Surgical History
-                            </h2>
-                        </div>
-                        <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
-                            {{ medical['previous_surgeries'] if medical and medical['previous_surgeries'] else 'No surgical history recorded' }}
                         </p>
                     </div>
                 </div>
@@ -281,8 +280,8 @@
 
     <footer class="footer">
         <div class="footer-content">
-            <div class="footer-brand">SahayID Emergency Access System © 2026</div>
-            <div class="footer-note">Confidential First Responder Clinical Gateway</div>
+            <div class="footer-brand">SahayID Emergency Access System &copy; 2026</div>
+            <div class="footer-note">CRITICAL MEDICAL ACCESS &bull; Confidential First Responder Clinical Gateway</div>
         </div>
     </footer>
 </body>
