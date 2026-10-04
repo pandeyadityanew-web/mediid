@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#0284c7">
     <meta property="og:title" content="SahayID - Critical Medical Access">
     <meta property="og:description" content="Privacy-first digital medical identity and authorized clinical gateway.">
     <meta property="og:image" content="{{ url_for('static', filename='images/sahayid-logo.jpg') }}">
@@ -21,7 +23,25 @@
                 <span class="brand-tag-inline">Critical Medical Access</span>
                 <span style="display:none;">MediID</span>
             </a>
-            <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
+            
+            <div class="nav-actions-wrap">
+                <button type="button" class="install-app-btn" id="installAppBtn" style="display: inline-flex;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Install App</span>
+                </button>
+                <button type="button" class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Dark Mode">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <span class="theme-text">Dark</span>
+                </button>
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
+            </div>
+
             <nav>
                 <ul class="nav-menu" id="navMenu">
                     <li><a href="#about" class="nav-link">About</a></li>

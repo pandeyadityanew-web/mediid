@@ -1500,9 +1500,272 @@ textarea.form-textarea {
   color: var(--emergency);
 }
 
+/* ==========================================================================
+   Navigation Utility Buttons (Dark Mode Toggle & PWA Install)
+   ========================================================================== */
+.nav-actions-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: var(--bg-surface);
+  border: 1.5px solid var(--border-strong);
+  color: var(--text-main);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 38px;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.install-app-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: var(--primary-light);
+  border: 1.5px solid var(--primary-border);
+  color: var(--primary);
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 38px;
+}
+
+.install-app-btn:hover {
+  background-color: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+/* ==========================================================================
+   Dark Mode Theme System
+   ========================================================================== */
+[data-theme="dark"] {
+  --primary: #38bdf8;
+  --primary-hover: #7dd3fc;
+  --primary-light: rgba(56, 189, 248, 0.12);
+  --primary-border: rgba(56, 189, 248, 0.3);
+  
+  --secondary: #2dd4bf;
+  --secondary-hover: #5eead4;
+  --secondary-light: rgba(45, 212, 191, 0.12);
+  
+  --emergency: #f87171;
+  --emergency-hover: #fca5a5;
+  --emergency-light: rgba(248, 113, 113, 0.15);
+  --emergency-border: rgba(248, 113, 113, 0.35);
+  
+  --success: #4ade80;
+  --success-light: rgba(74, 222, 128, 0.15);
+  --success-border: rgba(74, 222, 128, 0.35);
+  
+  --warning: #fbbf24;
+  --warning-light: rgba(251, 191, 36, 0.15);
+  --warning-border: rgba(251, 191, 36, 0.35);
+  
+  --navy-950: #ffffff;
+  --navy-900: #f1f5f9;
+  --navy-800: #e2e8f0;
+  --navy-700: #cbd5e1;
+  
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-light: #64748b;
+  
+  --bg-app: #0b1120;
+  --bg-surface: #131d31;
+  --bg-subtle: #1e293b;
+  
+  --border-subtle: #243247;
+  --border-strong: #334155;
+  
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] body {
+  background-color: #0b1120;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .navbar {
+  background-color: #0f172a;
+  border-bottom-color: #1e293b;
+}
+
+[data-theme="dark"] .auth-card,
+[data-theme="dark"] .hero-video-card,
+[data-theme="dark"] .capability-card,
+[data-theme="dark"] .journey-card,
+[data-theme="dark"] .process-step-node,
+[data-theme="dark"] .table-card,
+[data-theme="dark"] .summary-card,
+[data-theme="dark"] .gateway-option-card,
+[data-theme="dark"] .modal-content {
+  background-color: #131d31;
+  border-color: #243247;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .dashboard-sidebar {
+  background-color: #0f172a;
+  border-color: #243247;
+}
+
+[data-theme="dark"] .role-toggle-tabs {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .role-tab.active {
+  background-color: #131d31;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-textarea,
+[data-theme="dark"] .form-control {
+  background-color: #1a263c;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .form-input:focus,
+[data-theme="dark"] .form-select:focus,
+[data-theme="dark"] .form-textarea:focus,
+[data-theme="dark"] .form-control:focus {
+  border-color: var(--primary);
+  background-color: #1e2d48;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background-color: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .demo-credentials-box {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .demo-credentials-box code {
+  background-color: #0f172a;
+  color: #38bdf8;
+}
+
+[data-theme="dark"] .data-table th {
+  background-color: #1e293b;
+  color: #94a3b8;
+  border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .data-table td {
+  border-bottom-color: #243247;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .data-table tbody tr:hover {
+  background-color: #182337;
+}
+
+[data-theme="dark"] .main-wrapper {
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(56, 189, 248, 0.08), transparent 75%),
+    url('../images/wave-bg.png');
+}
+
+[data-theme="dark"] .footer {
+  background-color: #0a0f1d;
+  border-top-color: #1e293b;
+}
+
+[data-theme="dark"] .process-node-number {
+  background-color: #131d31;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .process-step-node.step-active .process-node-number {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #0b1120;
+}
+
+[data-theme="dark"] .otp-display-badge {
+  background-color: #0b1120;
+  color: #4ade80;
+}
+
+[data-theme="dark"] .hero-video-badge {
+  background-color: rgba(15, 23, 42, 0.85);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #f8fafc;
+}
+
+/* Mobile & Touch Improvements */
+@media (max-width: 768px) {
+  .btn, .form-input, .form-select, .form-textarea, .role-tab {
+    min-height: 44px;
+  }
+  
+  .auth-card {
+    padding: 1.75rem 1.25rem;
+    border-radius: var(--radius-lg);
+  }
+  
+  .nav-container {
+    padding: 0.6rem 1rem;
+  }
+  
+  .nav-actions-wrap {
+    margin-left: auto;
+    margin-right: 0.5rem;
+  }
+  
+  .hero-heading {
+    font-size: 1.85rem;
+    line-height: 1.2;
+  }
+  
+  .hero-cta-group {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .hero-cta-group .btn {
+    width: 100%;
+  }
+}
+
 /* Print Optimization */
 @media print {
-  .navbar, .footer, .dashboard-sidebar, .btn, .flash-messages {
+  .navbar, .footer, .dashboard-sidebar, .btn, .flash-messages, .theme-toggle-btn, .install-app-btn {
     display: none !important;
   }
   
