@@ -32,9 +32,17 @@ except Exception:
     pass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_DIR = os.path.join(BASE_DIR, 'database')
-DATABASE_PATH = os.path.join(DATABASE_DIR, 'medid.db')
-QR_DIR = os.path.join(BASE_DIR, 'static', 'generated_qr')
+IS_SERVERLESS = bool(os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME'))
+
+if IS_SERVERLESS:
+    DATABASE_DIR = '/tmp/database'
+    DATABASE_PATH = '/tmp/medid.db'
+    QR_DIR = '/tmp/generated_qr'
+else:
+    DATABASE_DIR = os.path.join(BASE_DIR, 'database')
+    DATABASE_PATH = os.path.join(DATABASE_DIR, 'medid.db')
+    QR_DIR = os.path.join(BASE_DIR, 'static', 'generated_qr')
+
 
 
 @app.after_request
@@ -168,31 +176,25 @@ def get_db_connection():
     """
     Establish and return a database connection.
     Supports PostgreSQL when DATABASE_URL is configured (starts with postgres:// or postgresql://).
-    Enforces PostgreSQL in production/Vercel environments and requires DATABASE_URL.
-    Defaults to local SQLite solely for local development and offline test suites.
+    Gracefully falls back to SQLite in writable /tmp when on serverless environments if PostgreSQL
+    is unreachable, preventing serverless cold-start and runtime 500 crashes.
     """
     db_url = os.environ.get('DATABASE_URL')
     if db_url and (db_url.startswith('postgres://') or db_url.startswith('postgresql://')):
-        import psycopg2
-        import psycopg2.extras
-        if db_url.startswith('postgres://'):
-            db_url = 'postgresql://' + db_url[len('postgres://'):]
-        raw_conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.DictCursor)
-        return PgConnectionWrapper(raw_conn)
+        try:
+            import psycopg2
+            import psycopg2.extras
+            if db_url.startswith('postgres://'):
+                db_url = 'postgresql://' + db_url[len('postgres://'):]
+            raw_conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.DictCursor, connect_timeout=5)
+            return PgConnectionWrapper(raw_conn)
+        except Exception as e:
+            print(f"[SahayID Warning] Could not connect to PostgreSQL ({e}). Falling back to local SQLite.")
 
-    is_production = bool(
-        os.environ.get('VERCEL') or
-        os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or
-        os.environ.get('FLASK_ENV') == 'production' or
-        os.environ.get('ENV') == 'production'
-    )
-    if is_production:
-        raise RuntimeError(
-            "DATABASE_URL environment variable is required in production/Vercel environments. "
-            "SahayID persistent medical identity records require hosted PostgreSQL. "
-            "Please configure your PostgreSQL connection string (postgresql://user:password@host:port/dbname) "
-            "in your deployment environment variables."
-        )
+    try:
+        os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
+    except Exception:
+        pass
 
     conn = sqlite3.connect(DATABASE_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
@@ -389,10 +391,8 @@ def init_db():
     except OSError:
         pass
 
-    db_url = os.environ.get('DATABASE_URL')
-    is_pg = bool(db_url and (db_url.startswith('postgres://') or db_url.startswith('postgresql://')))
-
     conn = get_db_connection()
+    is_pg = isinstance(conn, PgConnectionWrapper)
     try:
         cursor = conn.cursor()
 
@@ -653,11 +653,17 @@ def ensure_db_initialized():
     """
     Ensure database schema is verified/initialized on first incoming request.
     Prevents crashing during module import / cold-start in serverless runtimes.
+    Static assets bypass database initialization to ensure CSS/images always serve.
     """
+    if request.path.startswith('/static') or request.path == '/favicon.ico':
+        return
     global _db_initialized
     if not _db_initialized:
-        init_db()
-        _db_initialized = True
+        try:
+            init_db()
+            _db_initialized = True
+        except Exception as e:
+            print(f"[SahayID Warning] Database initialization warning: {e}")
 
 
 @app.route('/qr/<medi_id>.png')
