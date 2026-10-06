@@ -21,9 +21,21 @@
             <nav>
                 <ul class="nav-menu" id="navMenu">
                     <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
-                    <li><a href="{{ url_for('login') }}" class="nav-link">Patient Login</a></li>
-                    <li><a href="{{ url_for('doctor_login') }}" class="nav-link">Doctor Portal</a></li>
-                    <li><a href="{{ url_for('register') }}" class="btn btn-primary nav-btn active">Get Started</a></li>
+                    <li><a href="{{ url_for('index') }}#how-it-works" class="nav-link">How It Works</a></li>
+                    {% if session.get('role') == 'doctor' %}
+                        <li><a href="{{ url_for('doctor_dashboard') }}" class="btn btn-primary nav-btn">Doctor Portal</a></li>
+                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
+                        <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                    {% elif session.get('role') == 'patient' %}
+                        <li><a href="{{ url_for('dashboard') }}" class="btn btn-primary nav-btn">Patient Portal</a></li>
+                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
+                        <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('login') }}" class="nav-link">Patient Login</a></li>
+                        <li><a href="{{ url_for('doctor_login') }}" class="nav-link">Doctor Portal</a></li>
+                        <li><a href="{{ url_for('register') }}" class="btn btn-primary nav-btn active">Get Started</a></li>
+                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
+                    {% endif %}
                 </ul>
             </nav>
         </div>

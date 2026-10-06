@@ -122,5 +122,41 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 7. PWA Service Worker Registration & Subtle Install Prompt
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+        });
+    }
+
+    let deferredPrompt = null;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        if (isStandalone) return;
+        e.preventDefault();
+        deferredPrompt = e;
+        const installBtns = document.querySelectorAll('.pwa-install-btn');
+        installBtns.forEach(btn => {
+            btn.style.display = 'inline-flex';
+            btn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const choice = await deferredPrompt.userChoice;
+                    if (choice && choice.outcome === 'accepted') {
+                        installBtns.forEach(b => b.style.display = 'none');
+                    }
+                    deferredPrompt = null;
+                }
+            });
+        });
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        const installBtns = document.querySelectorAll('.pwa-install-btn');
+        installBtns.forEach(b => b.style.display = 'none');
+    });
+
     console.log('SahayID Healthcare Security Engine Initialized.');
 });

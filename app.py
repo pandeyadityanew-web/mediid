@@ -22,6 +22,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sahayid-production-secret-key-default-2026')
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('ENV') == 'production' or os.environ.get('SESSION_COOKIE_SECURE', '').lower() in ('true', '1'):
     app.config['SESSION_COOKIE_SECURE'] = True
 
@@ -694,6 +695,12 @@ def register():
     hashes password, creates an initial medical profile, and automatically
     generates the patient's emergency QR code.
     """
+    if request.method == 'GET':
+        if session.get('user_id') and session.get('role') == 'patient':
+            return redirect(url_for('dashboard'))
+        if session.get('doctor_id') and session.get('role') == 'doctor':
+            return redirect(url_for('doctor_dashboard'))
+
     if request.method == 'POST':
         full_name = request.form.get('full_name', '').strip()
         email = request.form.get('email', '').strip().lower()
@@ -764,9 +771,12 @@ def register():
             )
             return redirect(url_for('login'))
 
-        except sqlite3.Error:
-            db.rollback()
-            flash("A database error occurred during registration. Please try again.", "error")
+        except Exception as e:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            flash("A server error occurred during registration. Please try again.", "error")
             return render_template('register.html', full_name=full_name, email=email, phone=phone)
 
     return render_template('register.html')
@@ -779,6 +789,12 @@ def login():
     Accepts Email or MediID with password, verifies credentials,
     sets session state, and redirects to dashboard.
     """
+    if request.method == 'GET':
+        if session.get('user_id') and session.get('role') == 'patient':
+            return redirect(url_for('dashboard'))
+        if session.get('doctor_id') and session.get('role') == 'doctor':
+            return redirect(url_for('doctor_dashboard'))
+
     if request.method == 'POST':
         identifier = request.form.get('identifier', '').strip()
         password = request.form.get('password', '')
@@ -808,6 +824,7 @@ def login():
 
             # Establish authenticated patient session
             session.clear()
+            session.permanent = True
             session['user_id'] = user['id']
             session['medi_id'] = user['medi_id']
             session['full_name'] = user['full_name']
@@ -827,14 +844,15 @@ def login():
             flash(f"Welcome back, {user['full_name']}!", "success")
             return redirect(url_for('dashboard'))
 
-        except sqlite3.Error:
-            flash("An error occurred during sign in. Please try again.", "error")
+        except Exception as e:
+            flash("Unable to sign in right now. Please try again.", "error")
             return render_template('login.html', identifier=identifier)
 
     return render_template('login.html')
 
 
 @app.route('/logout')
+@app.route('/doctor/logout')
 def logout():
     """Clear user session and redirect to landing page."""
     session.clear()
@@ -853,6 +871,12 @@ def doctor_login():
     Accepts Email or Doctor ID with password, verifies credentials,
     sets doctor session state, and redirects to doctor dashboard.
     """
+    if request.method == 'GET':
+        if session.get('doctor_id') and session.get('role') == 'doctor':
+            return redirect(url_for('doctor_dashboard'))
+        if session.get('user_id') and session.get('role') == 'patient':
+            return redirect(url_for('dashboard'))
+
     if request.method == 'POST':
         identifier = request.form.get('identifier', '').strip()
         password = request.form.get('password', '')
@@ -881,6 +905,7 @@ def doctor_login():
 
             # Establish authenticated doctor session
             session.clear()
+            session.permanent = True
             session['doctor_id'] = doctor['id']
             session['doc_code'] = doctor['doctor_id']
             session['full_name'] = doctor['full_name']
@@ -890,14 +915,14 @@ def doctor_login():
             session['verification_status'] = doctor['verification_status']
             session['role'] = 'doctor'
 
-            flash(f"Welcome, {doctor['full_name']}!", "success")
+            flash(f"Welcome, Dr. {doctor['full_name']}!", "success")
             next_url = request.args.get('next')
             if next_url and next_url.startswith('/'):
                 return redirect(next_url)
             return redirect(url_for('doctor_dashboard'))
 
-        except sqlite3.Error:
-            flash("An error occurred during doctor sign in. Please try again.", "error")
+        except Exception as e:
+            flash("Unable to sign in as doctor right now. Please try again.", "error")
             return render_template('doctor_login.html', identifier=identifier)
 
     return render_template('doctor_login.html')
@@ -911,6 +936,12 @@ def doctor_register():
     Academic / Prototype Note: Real medical council API verification is not performed.
     Accounts are created with verification_status = 'pending' by default.
     """
+    if request.method == 'GET':
+        if session.get('doctor_id') and session.get('role') == 'doctor':
+            return redirect(url_for('doctor_dashboard'))
+        if session.get('user_id') and session.get('role') == 'patient':
+            return redirect(url_for('dashboard'))
+
     if request.method == 'POST':
         full_name = request.form.get('full_name', '').strip()
         email = request.form.get('email', '').strip().lower()
@@ -970,9 +1001,12 @@ def doctor_register():
             )
             return redirect(url_for('doctor_login'))
 
-        except sqlite3.Error:
-            db.rollback()
-            flash("A database error occurred during doctor registration. Please try again.", "error")
+        except Exception as e:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            flash("A server error occurred during doctor registration. Please try again.", "error")
             return render_template('doctor_register.html', full_name=full_name, email=email,
                                    phone=phone, specialization=specialization,
                                    hospital_or_clinic=hospital, registration_number=registration_num)
@@ -1155,7 +1189,7 @@ def doctor_patient_confirm(medi_id):
                 (patient['id'], doctor['id'], doctor['full_name'], doctor['hospital_or_clinic'], f"Consent Requested: {reason}", client_ip)
             )
             db.commit()
-        except sqlite3.Error:
+        except Exception:
             pass
 
         # Check if direct confirmation requested (programmatic test helper compatibility)
@@ -1170,7 +1204,7 @@ def doctor_patient_confirm(medi_id):
                     (patient['id'], doctor['id'], doctor['full_name'], doctor['hospital_or_clinic'], reason, client_ip)
                 )
                 db.commit()
-            except sqlite3.Error:
+            except Exception:
                 pass
             flash("Patient clinical record accessed and logged.", "success")
             return redirect(url_for('doctor_patient_view', medi_id=patient['medi_id']))
@@ -1493,7 +1527,7 @@ def doctor_patient_view(medi_id):
                 (patient['id'], doctor['id'], doctor['full_name'], doctor['hospital_or_clinic'], query_reason, client_ip)
             )
             db.commit()
-        except sqlite3.Error:
+        except Exception:
             pass
         session[f'doc_auth_{patient["medi_id"]}'] = True
 
@@ -1782,8 +1816,11 @@ def medical_profile():
             flash("Medical profile updated successfully.", "success")
             return redirect(url_for('medical_profile'))
 
-        except sqlite3.Error:
-            db.rollback()
+        except Exception as e:
+            try:
+                db.rollback()
+            except Exception:
+                pass
             flash("Failed to update medical profile. Please try again.", "error")
 
     # GET request - load existing profile
@@ -1827,8 +1864,11 @@ def emergency_contacts():
             flash(f"Emergency contact '{name}' added successfully.", "success")
             return redirect(url_for('emergency_contacts'))
 
-        except sqlite3.Error:
-            db.rollback()
+        except Exception as e:
+            try:
+                db.rollback()
+            except Exception:
+                pass
             flash("Failed to add emergency contact. Please try again.", "error")
             return redirect(url_for('emergency_contacts'))
 
@@ -1871,8 +1911,11 @@ def delete_emergency_contact(contact_id):
         )
         db.commit()
         flash(f"Contact '{contact['name']}' removed successfully.", "success")
-    except sqlite3.Error:
-        db.rollback()
+    except Exception as e:
+        try:
+            db.rollback()
+        except Exception:
+            pass
         flash("Failed to remove emergency contact.", "error")
 
     return redirect(url_for('emergency_contacts'))
@@ -1915,7 +1958,7 @@ def emergency_access(medi_id):
             (user['id'], client_ip)
         )
         db.commit()
-    except sqlite3.Error:
+    except Exception:
         pass
 
     is_doctor = (session.get('role') == 'doctor')
