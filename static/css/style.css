@@ -1364,6 +1364,9 @@ textarea.form-textarea {
 /* ==========================================================================
    Responsive Breakpoints
    ========================================================================== */
+/* ==========================================================================
+   Responsive Breakpoints & Mobile Polish
+   ========================================================================== */
 @media (max-width: 1024px) {
   .hero-grid {
     grid-template-columns: 1fr;
@@ -1382,55 +1385,6 @@ textarea.form-textarea {
   .footer-grid {
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .nav-toggle {
-    display: block;
-  }
-  
-  .nav-menu {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    background-color: #ffffff;
-    flex-direction: column;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-md);
-  }
-  
-  .nav-menu.active {
-    display: flex;
-  }
-  
-  .hero-heading {
-    font-size: 2.15rem;
-  }
-  
-  .capabilities-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .dashboard-layout {
-    flex-direction: column;
-  }
-  
-  .dashboard-sidebar {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-  
-  .dashboard-main {
-    padding: 1.5rem 1rem;
-  }
-  
-  .footer-grid {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -1501,7 +1455,7 @@ textarea.form-textarea {
 }
 
 /* ==========================================================================
-   PWA Install Button Styling (Subtle & Non-Intrusive)
+   PWA Install Button Styling (Desktop & Mobile)
    ========================================================================== */
 .pwa-install-btn {
   display: none;
@@ -1524,7 +1478,7 @@ textarea.form-textarea {
 }
 
 /* ==========================================================================
-   Mobile-Specific Refinements (320px, 360px, 375px, 390px, 414px, 480px)
+   Mobile-Specific Refinements (320px, 360px, 375px, 390px, 414px, 768px)
    ========================================================================== */
 html, body {
   overflow-x: hidden;
@@ -1532,53 +1486,234 @@ html, body {
 }
 
 @media (max-width: 768px) {
+  .navbar {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+  }
+
   .nav-container {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 1rem;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
   }
-  
+
+  .brand-logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   .brand-logo-img {
-    height: 32px;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
   }
-  
+
+  .brand-name {
+    font-size: 1.15rem;
+  }
+
   .brand-tag-inline {
     display: none;
   }
-  
+
+  .nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--navy-900);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    margin-left: auto;
+  }
+
+  .nav-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #ffffff;
+    flex-direction: column;
+    padding: 0.85rem 1.25rem 1.25rem 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-lg);
+    gap: 0.65rem;
+    align-items: stretch;
+    z-index: 1001;
+  }
+
+  .nav-menu.active {
+    display: flex;
+  }
+
+  .nav-menu li {
+    width: 100%;
+    list-style: none;
+  }
+
+  .nav-menu .nav-link {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    border-radius: var(--radius-md);
+  }
+
+  .nav-menu .nav-link:hover,
+  .nav-menu .nav-link.active {
+    background-color: var(--bg-subtle);
+    color: var(--primary);
+  }
+
+  .nav-menu .btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    margin-top: 0.25rem;
+  }
+
+  .nav-divider {
+    height: 1px;
+    background-color: var(--border-subtle);
+    margin: 0.35rem 0;
+    width: 100%;
+    list-style: none;
+  }
+
+  .pwa-install-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+    background-color: var(--bg-subtle);
+    color: var(--primary);
+    border: 1px solid var(--primary-border);
+    font-weight: 600;
+  }
+
+  .hero-section-wrap {
+    padding: 1.5rem 1rem 2.25rem 1rem;
+  }
+
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .hero-heading {
+    font-size: 1.85rem;
+    line-height: 1.22;
+    margin-bottom: 0.75rem;
+  }
+
+  .hero-lead-text {
+    font-size: 0.925rem;
+    line-height: 1.55;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-cta-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-bottom: 1.25rem;
+    width: 100%;
+  }
+
+  .hero-cta-group a:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .hero-cta-group .btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.875rem;
+    min-height: 44px;
+  }
+
+  .hero-meta-points {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.8rem;
+  }
+
+  .capabilities-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-layout {
+    flex-direction: column;
+  }
+
+  .dashboard-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .dashboard-main {
+    padding: 1.5rem 1rem;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+
   .auth-container {
     padding: 1rem 0.75rem;
     margin-top: 1rem;
   }
-  
+
   .auth-card {
     padding: 1.5rem 1.15rem;
     border-radius: var(--radius-lg);
   }
-  
+
   .form-control, .form-select, input[type="text"], input[type="email"], input[type="password"], input[type="tel"], textarea {
-    font-size: 16px !important; /* Prevents unwanted iOS zoom on focus */
+    font-size: 16px !important;
     padding: 0.75rem 0.85rem;
   }
-  
+
   .btn {
-    min-height: 44px; /* Touch-friendly tap target */
+    min-height: 44px;
     padding: 0.65rem 1.15rem;
   }
-  
+
   .table-card {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     margin-bottom: 1.5rem;
   }
-  
+
   .table-card table {
     min-width: 540px;
   }
-  
+
   .dashboard-overview-grid {
     grid-template-columns: 1fr !important;
     gap: 1rem;
   }
-  
+
   .printable-card-preview {
     max-width: 100%;
     padding: 1rem;
@@ -1587,66 +1722,55 @@ html, body {
 
 @media (max-width: 480px) {
   .hero-section-wrap {
-    padding: 2.5rem 1rem 3rem 1rem;
+    padding: 1.25rem 0.85rem 2rem 0.85rem;
   }
-  
+
   .hero-heading {
-    font-size: 1.85rem;
-    line-height: 1.25;
+    font-size: 1.65rem;
+    letter-spacing: -0.02em;
   }
-  
-  .hero-tagline-lead {
-    font-size: 0.95rem;
-  }
-  
-  .hero-actions-group {
+
+  .hero-cta-group {
+    display: flex;
     flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .hero-cta-group .btn {
     width: 100%;
-    gap: 0.75rem;
   }
-  
-  .hero-actions-group .btn {
-    width: 100%;
-    text-align: center;
-  }
-  
-  .hero-meta-points {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.65rem;
-  }
-  
+
   .role-toggle-tabs {
     flex-direction: row;
     gap: 0.35rem;
   }
-  
+
   .role-tab {
     padding: 0.5rem 0.65rem;
     font-size: 0.8rem;
     justify-content: center;
   }
-  
+
   .about-section {
-    padding: 3rem 1rem;
-  }
-  
-  .section-title {
-    font-size: 1.6rem;
-  }
-  
-  .process-timeline-wrap {
     padding: 2.5rem 1rem;
   }
-  
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .process-timeline-wrap {
+    padding: 2rem 1rem;
+  }
+
   .process-step-node {
     padding-left: 3rem;
   }
-  
+
   .footer {
     padding: 2.5rem 1rem 1.5rem 1rem;
   }
-  
+
   .footer-bottom {
     flex-direction: column;
     text-align: center;
@@ -1656,13 +1780,13 @@ html, body {
 
 @media (max-width: 360px) {
   .hero-heading {
-    font-size: 1.65rem;
+    font-size: 1.5rem;
   }
-  
+
   .brand-name {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
   }
-  
+
   .auth-card {
     padding: 1.25rem 0.85rem;
   }
@@ -1673,14 +1797,14 @@ html, body {
   .navbar, .footer, .dashboard-sidebar, .btn, .flash-messages, .pwa-install-btn {
     display: none !important;
   }
-  
+
   body, .dashboard-main, .dashboard-layout {
     background: #ffffff !important;
     color: #000000 !important;
     padding: 0 !important;
     margin: 0 !important;
   }
-  
+
   .printable-card {
     border: 1px solid #000000 !important;
     color: #000000 !important;

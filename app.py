@@ -144,6 +144,10 @@ class PgCursorWrapper:
     def rowcount(self):
         return self._cursor.rowcount
 
+    @property
+    def lastrowid(self):
+        return getattr(self._cursor, 'lastrowid', None)
+
     def close(self):
         self._cursor.close()
 
@@ -748,7 +752,9 @@ def register():
                 """,
                 (medi_id, full_name, email, phone, password_hash)
             )
-            user_id = cursor.lastrowid
+            cursor.execute("SELECT id FROM users WHERE medi_id = ?", (medi_id,))
+            u_row = cursor.fetchone()
+            user_id = u_row['id'] if u_row else cursor.lastrowid
 
             # Create initial empty medical profile for the new user
             cursor.execute(
@@ -776,6 +782,7 @@ def register():
                 db.rollback()
             except Exception:
                 pass
+            print(f"[SahayID Registration Error] {e}")
             flash("A server error occurred during registration. Please try again.", "error")
             return render_template('register.html', full_name=full_name, email=email, phone=phone)
 
@@ -1006,6 +1013,7 @@ def doctor_register():
                 db.rollback()
             except Exception:
                 pass
+            print(f"[SahayID Doctor Registration Error] {e}")
             flash("A server error occurred during doctor registration. Please try again.", "error")
             return render_template('doctor_register.html', full_name=full_name, email=email,
                                    phone=phone, specialization=specialization,
