@@ -148,11 +148,23 @@
             {% endwith %}
 
             <!-- Verification Banner for Unverified Doctors -->
-            {% if doctor['verification_status'] != 'verified' %}
+            {% if doctor['verification_status'] == 'rejected' %}
+                <div class="alert alert-error" style="margin-bottom: 1.75rem;">
+                    <div>
+                        <strong>Verification Decision: Application Rejected.</strong>
+                        <div>Your practitioner verification application was rejected by an administrator.</div>
+                        {% if doctor['verification_reason'] %}
+                            <div style="margin-top: 0.5rem; font-size: 0.875rem;">
+                                <strong>Rejection Reason:</strong> {{ doctor['verification_reason'] }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% elif doctor['verification_status'] != 'verified' %}
                 <div class="alert alert-warning" style="margin-bottom: 1.75rem;">
                     <div>
                         <strong>Account Status: {{ doctor['verification_status']|title }}.</strong>
-                        <span>Clinical patient record lookup is restricted until verified. (Academic simulation: Account is pre-configured with test credentials).</span>
+                        <span>Your verification application is currently under review by an administrator. Clinical patient record lookup is restricted until verified.</span>
                     </div>
                 </div>
             {% endif %}

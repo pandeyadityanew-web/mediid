@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal Login - SahayID</title>
+    <script>
+        (function() {
+            var theme = localStorage.getItem('sahayid-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0284c7">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SahayID">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+</head>
+<body>
+    <!-- Top Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="brand-logo-wrap">
+                <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
+                <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                <span style="display:none;">MediID</span>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
+            <nav>
+                <ul class="nav-menu" id="navMenu">
+                    <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                    <li><a href="{{ url_for('faqs') }}" class="nav-link">FAQs</a></li>
+                    <li><button type="button" class="btn btn-outline-primary nav-btn pwa-install-btn">↓ Install App</button></li>
+                    <li>
+                        <button class="theme-toggle-btn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">
+                            <span class="theme-toggle-icon">🌙</span>
+                            <span class="theme-toggle-text">Dark Mode</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+        <div class="auth-container">
+            <!-- Flash Notification Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="auth-card" style="border-top: 4px solid var(--primary);">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 12px; background: rgba(2, 132, 199, 0.12); color: var(--primary); margin-bottom: 0.75rem;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <path d="m9 12 2 2 4-4"/>
+                        </svg>
+                    </div>
+                    <div class="role-badge" style="background: rgba(2, 132, 199, 0.15); color: var(--primary); font-weight: 700; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px; display: inline-block; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                        Administrative Gateway
+                    </div>
+                    <h1 class="auth-title" style="margin-bottom: 0.35rem;">Admin Console Login</h1>
+                    <p class="auth-subtitle">Authorized administrator verification & oversight portal.</p>
+                </div>
+
+                <form action="{{ url_for('admin_login') }}" method="POST" class="auth-form" novalidate>
+                    <div class="form-group">
+                        <label for="identifier" class="form-label">Admin Username or Email</label>
+                        <input
+                            type="text"
+                            id="identifier"
+                            name="identifier"
+                            class="form-control"
+                            placeholder="admin or admin@sahayid.org"
+                            value="{{ identifier or '' }}"
+                            required
+                            autocomplete="username"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Master Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-control"
+                            placeholder="••••••••••••"
+                            required
+                            autocomplete="current-password"
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1rem; padding: 0.85rem;">
+                        Sign In to Admin Console &rarr;
+                    </button>
+                </form>
+
+                <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle); text-align: center; font-size: 0.825rem; color: var(--text-muted);">
+                    <div style="margin-bottom: 0.35rem;">
+                        <strong>Confidential System:</strong> Unauthorized access attempts are monitored and logged.
+                    </div>
+                    <a href="{{ url_for('index') }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">&larr; Return to Public Homepage</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">SahayID © 2026 &bull; Critical Medical Access</div>
+            <div class="footer-note">Admin Verification & Oversight Network</div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

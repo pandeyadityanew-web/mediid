@@ -62,12 +62,12 @@ def set_security_headers(response):
 
 def login_required(f):
     """
-    Decorator requiring an active session (patient user_id or doctor_id) to access protected routes.
+    Decorator requiring an active session (patient user_id, doctor_id, or admin_id) to access protected routes.
     Redirects unauthenticated visitors to the login view.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session and 'doctor_id' not in session:
+        if 'user_id' not in session and 'doctor_id' not in session and 'admin_id' not in session:
             flash("Please sign in to access your SahayID portal.", "error")
             return redirect(url_for('login'))
         return f(*args, **kwargs)
@@ -77,11 +77,14 @@ def login_required(f):
 def patient_required(f):
     """
     Decorator ensuring that only authenticated patient accounts can access patient routes.
-    Prevents doctor accounts from entering patient account-management workflows.
+    Prevents doctor and admin accounts from entering patient account-management workflows.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
+            if 'admin_id' in session:
+                flash("Access restricted to patient accounts.", "error")
+                return redirect(url_for('admin_dashboard'))
             if 'doctor_id' in session:
                 flash("Access restricted to patient accounts.", "error")
                 return redirect(url_for('doctor_dashboard'))
@@ -89,7 +92,7 @@ def patient_required(f):
             return redirect(url_for('login'))
         if session.get('role') != 'patient':
             flash("Access restricted to patient accounts.", "error")
-            return redirect(url_for('doctor_dashboard'))
+            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -97,11 +100,14 @@ def patient_required(f):
 def doctor_required(f):
     """
     Decorator ensuring that only authenticated doctor accounts can access doctor routes.
-    Prevents patient accounts from accessing the clinical doctor portal.
+    Prevents patient and admin accounts from accessing the clinical doctor portal.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'doctor_id' not in session:
+            if 'admin_id' in session:
+                flash("Access restricted to verified medical doctors.", "error")
+                return redirect(url_for('admin_dashboard'))
             if 'user_id' in session:
                 flash("Access restricted to verified medical doctors.", "error")
                 return redirect(url_for('dashboard'))
@@ -109,9 +115,33 @@ def doctor_required(f):
             return redirect(url_for('doctor_login'))
         if session.get('role') != 'doctor':
             flash("Access restricted to verified medical doctors.", "error")
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('doctor_dashboard'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+def admin_required(f):
+    """
+    Decorator ensuring that only authenticated admin accounts can access admin routes.
+    Prevents patient and doctor accounts from accessing administrative oversight controls.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_id' not in session:
+            if 'doctor_id' in session:
+                flash("Access restricted to authorized administrators.", "error")
+                return redirect(url_for('doctor_dashboard'))
+            if 'user_id' in session:
+                flash("Access restricted to authorized administrators.", "error")
+                return redirect(url_for('dashboard'))
+            flash("Please sign in with your Administrator credentials.", "error")
+            return redirect(url_for('admin_login'))
+        if session.get('role') != 'admin':
+            flash("Access restricted to authorized administrators.", "error")
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 
 
 # ============================================================================
@@ -539,6 +569,16 @@ def init_db():
                     ip_address VARCHAR(100)
                 );
             """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS admins (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(100) UNIQUE NOT NULL,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    full_name VARCHAR(255) NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
             # PostgreSQL indexes
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_medi_id ON users (medi_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);")
@@ -548,6 +588,8 @@ def init_db():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_medical_profiles_user ON medical_profiles (user_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_doctors_doctor_id ON doctors (doctor_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_doctors_email ON doctors (email);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_admins_username ON admins (username);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_token ON access_requests (request_token);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_patient ON access_requests (patient_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_doctor ON access_requests (doctor_id);")
@@ -556,12 +598,16 @@ def init_db():
             for alter_sql in [
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT;",
                 "ALTER TABLE doctors ADD COLUMN IF NOT EXISTS photo_url TEXT;",
+                "ALTER TABLE doctors ADD COLUMN IF NOT EXISTS verification_reason TEXT;",
+                "ALTER TABLE doctors ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP;",
+                "ALTER TABLE doctors ADD COLUMN IF NOT EXISTS verified_by INTEGER;",
                 "ALTER TABLE medical_profiles ADD COLUMN IF NOT EXISTS photo_url TEXT;",
                 "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS doctor_id INTEGER;",
                 "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS actor_type VARCHAR(50) DEFAULT 'PATIENT';",
                 "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS actor_name VARCHAR(255);",
                 "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS organization VARCHAR(255);",
-                "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS reason TEXT;"
+                "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS reason TEXT;",
+                "ALTER TABLE access_logs ALTER COLUMN user_id DROP NOT NULL;"
             ]:
                 try:
                     cursor.execute(alter_sql)
@@ -616,7 +662,7 @@ def init_db():
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS access_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
+                    user_id INTEGER,
                     doctor_id INTEGER,
                     actor_type TEXT DEFAULT 'PATIENT',
                     actor_name TEXT,
@@ -625,7 +671,8 @@ def init_db():
                     access_type TEXT NOT NULL,
                     accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     ip_address TEXT,
-                    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+                    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                    FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE
                 );
             """)
 
@@ -657,7 +704,21 @@ def init_db():
                     hospital_or_clinic TEXT NOT NULL,
                     registration_number TEXT NOT NULL,
                     verification_status TEXT DEFAULT 'pending',
+                    verification_reason TEXT,
+                    verified_at TIMESTAMP,
+                    verified_by INTEGER,
                     photo_url TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS admins (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    full_name TEXT NOT NULL,
+                    password_hash TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
@@ -692,6 +753,12 @@ def init_db():
             d_cols = [col[1] for col in cursor.fetchall()]
             if 'photo_url' not in d_cols:
                 cursor.execute("ALTER TABLE doctors ADD COLUMN photo_url TEXT;")
+            if 'verification_reason' not in d_cols:
+                cursor.execute("ALTER TABLE doctors ADD COLUMN verification_reason TEXT;")
+            if 'verified_at' not in d_cols:
+                cursor.execute("ALTER TABLE doctors ADD COLUMN verified_at TIMESTAMP;")
+            if 'verified_by' not in d_cols:
+                cursor.execute("ALTER TABLE doctors ADD COLUMN verified_by INTEGER;")
 
             cursor.execute("PRAGMA table_info(medical_profiles);")
             mp_cols = [col[1] for col in cursor.fetchall()]
@@ -699,7 +766,8 @@ def init_db():
                 cursor.execute("ALTER TABLE medical_profiles ADD COLUMN photo_url TEXT;")
 
             cursor.execute("PRAGMA table_info(access_logs);")
-            access_cols = [col[1] for col in cursor.fetchall()]
+            raw_access_cols = cursor.fetchall()
+            access_cols = [col[1] for col in raw_access_cols]
             if 'doctor_id' not in access_cols:
                 cursor.execute("ALTER TABLE access_logs ADD COLUMN doctor_id INTEGER;")
             if 'actor_type' not in access_cols:
@@ -711,6 +779,37 @@ def init_db():
             if 'reason' not in access_cols:
                 cursor.execute("ALTER TABLE access_logs ADD COLUMN reason TEXT;")
 
+            # Defensively migrate legacy SQLite access_logs if user_id had NOT NULL constraint
+            user_id_not_null = any(c[1] == 'user_id' and c[3] == 1 for c in raw_access_cols)
+            if user_id_not_null:
+                try:
+                    cursor.execute("PRAGMA foreign_keys = OFF;")
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS access_logs_migration (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER,
+                            doctor_id INTEGER,
+                            actor_type TEXT DEFAULT 'PATIENT',
+                            actor_name TEXT,
+                            organization TEXT,
+                            reason TEXT,
+                            access_type TEXT NOT NULL,
+                            accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            ip_address TEXT,
+                            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                            FOREIGN KEY (doctor_id) REFERENCES doctors (id) ON DELETE CASCADE
+                        );
+                    """)
+                    cursor.execute("""
+                        INSERT INTO access_logs_migration (id, user_id, doctor_id, actor_type, actor_name, organization, reason, access_type, accessed_at, ip_address)
+                        SELECT id, user_id, doctor_id, actor_type, actor_name, organization, reason, access_type, accessed_at, ip_address FROM access_logs;
+                    """)
+                    cursor.execute("DROP TABLE access_logs;")
+                    cursor.execute("ALTER TABLE access_logs_migration RENAME TO access_logs;")
+                    cursor.execute("PRAGMA foreign_keys = ON;")
+                except Exception as e:
+                    print(f"[SahayID Migration Notice] SQLite access_logs migration: {e}")
+
             # Database Indexes for Performance & Scalability
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_medi_id ON users (medi_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);")
@@ -720,16 +819,37 @@ def init_db():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_medical_profiles_user ON medical_profiles (user_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_doctors_doctor_id ON doctors (doctor_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_doctors_email ON doctors (email);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_admins_username ON admins (username);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_token ON access_requests (request_token);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_patient ON access_requests (patient_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_doctor ON access_requests (doctor_id);")
+
+        # Seed default master administrator if none exists
+        try:
+            cursor.execute("SELECT id FROM admins LIMIT 1;")
+            if not cursor.fetchone():
+                admin_email = os.environ.get('ADMIN_EMAIL', 'admin@sahayid.org').strip().lower()
+                admin_user = os.environ.get('ADMIN_USERNAME', 'admin').strip().lower()
+                admin_name = os.environ.get('ADMIN_NAME', 'System Administrator').strip()
+                admin_pass = os.environ.get('ADMIN_PASSWORD', 'AdminSahay@2026!')
+                admin_hash = generate_password_hash(admin_pass)
+                cursor.execute(
+                    """
+                    INSERT INTO admins (username, email, full_name, password_hash)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (admin_user, admin_email, admin_name, admin_hash)
+                )
+        except Exception:
+            pass
 
         conn.commit()
     finally:
         conn.close()
 
 
-def safe_log_access(db, user_id, access_type, ip_address=None, actor_type='PATIENT', actor_name=None, organization=None, reason=None, doctor_id=None):
+def safe_log_access(db, user_id=None, access_type='AUDIT', ip_address=None, actor_type='PATIENT', actor_name=None, organization=None, reason=None, doctor_id=None):
     """
     Defensively records an audit event to access_logs.
     Swallows errors to prevent non-critical audit log failures from disrupting authentication or workflow.
@@ -2558,6 +2678,282 @@ def emergency_access_view(token):
         access=access_meta,
         remaining_seconds=remaining_seconds
     )
+
+
+# ============================================================================
+# Admin Portal & Physician Verification Oversight Routes
+# ============================================================================
+
+@app.context_processor
+def inject_template_globals():
+    """Inject helper functions and global utilities into Jinja template scope."""
+    return dict(to_str_timestamp=to_str_timestamp)
+
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """
+    Administrator Authentication Gateway.
+    Authenticates administrative users via username/email and master credentials.
+    """
+    if 'admin_id' in session and session.get('role') == 'admin':
+        return redirect(url_for('admin_dashboard'))
+
+    if request.method == 'GET':
+        return render_template('admin_login.html', identifier=request.args.get('identifier', ''))
+
+    identifier = request.form.get('identifier', '').strip()
+    password = request.form.get('password', '')
+
+    if not identifier or not password:
+        flash("Please provide both administrator identifier and password.", "error")
+        return render_template('admin_login.html', identifier=identifier), 400
+
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute(
+        "SELECT * FROM admins WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?) LIMIT 1",
+        (identifier, identifier)
+    )
+    admin = cursor.fetchone()
+
+    if not admin or not check_password_hash(admin['password_hash'], password):
+        flash("Invalid administrator credentials. Access denied and recorded.", "error")
+        client_ip = request.remote_addr or '127.0.0.1'
+        safe_log_access(
+            db,
+            user_id=None,
+            doctor_id=None,
+            actor_type='ADMIN_UNAUTH',
+            actor_name=identifier,
+            organization='Security Gateway',
+            reason=f"Failed admin authentication attempt for: {identifier}",
+            access_type='ADMIN_LOGIN_FAILED',
+            ip_address=client_ip
+        )
+        return render_template('admin_login.html', identifier=identifier), 401
+
+    session.clear()
+    session['admin_id'] = admin['id']
+    session['username'] = admin['username']
+    session['full_name'] = admin['full_name']
+    session['email'] = admin['email']
+    session['role'] = 'admin'
+    session.permanent = True
+
+    client_ip = request.remote_addr or '127.0.0.1'
+    safe_log_access(
+        db,
+        user_id=None,
+        doctor_id=None,
+        actor_type='ADMIN',
+        actor_name=admin['full_name'],
+        organization='SahayID Oversight Console',
+        reason=f"Admin sign in successful: {admin['username']}",
+        access_type='ADMIN_LOGIN',
+        ip_address=client_ip
+    )
+
+    flash(f"Welcome back, Administrator {admin['full_name']}.", "success")
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin')
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard():
+    """
+    Dedicated Admin Verification & Oversight Dashboard.
+    Displays pending, verified, and rejected doctor credentials, metrics, and security audit logs.
+    """
+    db = get_db()
+    cursor = db.cursor()
+
+    # Query metrics
+    cursor.execute("SELECT COUNT(*) AS count FROM doctors WHERE LOWER(COALESCE(verification_status, 'pending')) = 'pending'")
+    row = cursor.fetchone()
+    pending_count = row['count'] if row else 0
+
+    cursor.execute("SELECT COUNT(*) AS count FROM doctors WHERE LOWER(verification_status) = 'verified'")
+    row = cursor.fetchone()
+    verified_count = row['count'] if row else 0
+
+    cursor.execute("SELECT COUNT(*) AS count FROM doctors WHERE LOWER(verification_status) = 'rejected'")
+    row = cursor.fetchone()
+    rejected_count = row['count'] if row else 0
+
+    cursor.execute("SELECT COUNT(*) AS count FROM users")
+    row = cursor.fetchone()
+    patient_count = row['count'] if row else 0
+
+    cursor.execute("SELECT COUNT(*) AS count FROM access_logs")
+    row = cursor.fetchone()
+    audit_count = row['count'] if row else 0
+
+    stats = {
+        'pending_doctors': pending_count,
+        'verified_doctors': verified_count,
+        'rejected_doctors': rejected_count,
+        'total_patients': patient_count,
+        'total_audit_events': audit_count,
+    }
+
+    # Query doctor lists
+    cursor.execute("SELECT * FROM doctors WHERE LOWER(COALESCE(verification_status, 'pending')) = 'pending' ORDER BY id DESC")
+    pending_doctors = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM doctors WHERE LOWER(verification_status) = 'verified' ORDER BY id DESC")
+    verified_doctors = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM doctors WHERE LOWER(verification_status) = 'rejected' ORDER BY id DESC")
+    rejected_doctors = cursor.fetchall()
+
+    # Query audit logs with defensive joins
+    cursor.execute(
+        """
+        SELECT
+            al.id,
+            al.user_id,
+            al.doctor_id,
+            al.actor_type,
+            al.actor_name,
+            al.organization,
+            al.reason,
+            al.access_type,
+            al.accessed_at,
+            al.ip_address,
+            u.medi_id AS patient_medi_id,
+            u.full_name AS patient_name,
+            d.doctor_id AS doc_code,
+            d.full_name AS doctor_name
+        FROM access_logs al
+        LEFT JOIN users u ON al.user_id = u.id
+        LEFT JOIN doctors d ON al.doctor_id = d.id
+        ORDER BY al.id DESC
+        LIMIT 200
+        """
+    )
+    audit_logs = cursor.fetchall()
+
+    return render_template(
+        'admin_dashboard.html',
+        stats=stats,
+        pending_doctors=pending_doctors,
+        verified_doctors=verified_doctors,
+        rejected_doctors=rejected_doctors,
+        audit_logs=audit_logs
+    )
+
+
+@app.route('/admin/doctor/<int:doctor_id>/approve', methods=['POST'])
+@admin_required
+def admin_approve_doctor(doctor_id):
+    """
+    Admin Doctor Approval Handler.
+    Authorizes a registered physician, granting active clinical lookup permissions.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM doctors WHERE id = ?", (doctor_id,))
+    doctor = cursor.fetchone()
+    if not doctor:
+        flash("Doctor record not found.", "error")
+        return redirect(url_for('admin_dashboard'))
+
+    admin_id = session.get('admin_id')
+    admin_name = session.get('full_name', 'Administrator')
+    now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+
+    cursor.execute(
+        """
+        UPDATE doctors
+        SET verification_status = 'verified',
+            verified_at = ?,
+            verified_by = ?,
+            verification_reason = NULL
+        WHERE id = ?
+        """,
+        (now_str, admin_id, doctor_id)
+    )
+    db.commit()
+
+    client_ip = request.remote_addr or '127.0.0.1'
+    safe_log_access(
+        db,
+        user_id=None,
+        doctor_id=doctor_id,
+        actor_type='ADMIN',
+        actor_name=admin_name,
+        organization='SahayID Oversight Console',
+        reason=f"Physician credentials verified: Dr. {doctor['full_name']} (Reg: {doctor['registration_number']})",
+        access_type='DOCTOR_APPROVED',
+        ip_address=client_ip
+    )
+
+    flash(f"Dr. {doctor['full_name']} has been approved and granted verified clinical access.", "success")
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/doctor/<int:doctor_id>/reject', methods=['POST'])
+@admin_required
+def admin_reject_doctor(doctor_id):
+    """
+    Admin Doctor Rejection Handler.
+    Denies practitioner credentials with an explicit justification.
+    """
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM doctors WHERE id = ?", (doctor_id,))
+    doctor = cursor.fetchone()
+    if not doctor:
+        flash("Doctor record not found.", "error")
+        return redirect(url_for('admin_dashboard'))
+
+    rejection_reason = request.form.get('rejection_reason', '').strip()
+    if not rejection_reason:
+        flash("Please provide a reason for rejecting the physician's verification.", "error")
+        return redirect(url_for('admin_dashboard'))
+
+    admin_id = session.get('admin_id')
+    admin_name = session.get('full_name', 'Administrator')
+    now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+
+    cursor.execute(
+        """
+        UPDATE doctors
+        SET verification_status = 'rejected',
+            verified_at = ?,
+            verified_by = ?,
+            verification_reason = ?
+        WHERE id = ?
+        """,
+        (now_str, admin_id, rejection_reason, doctor_id)
+    )
+    db.commit()
+
+    client_ip = request.remote_addr or '127.0.0.1'
+    safe_log_access(
+        db,
+        user_id=None,
+        doctor_id=doctor_id,
+        actor_type='ADMIN',
+        actor_name=admin_name,
+        organization='SahayID Oversight Console',
+        reason=f"Physician credentials rejected: Dr. {doctor['full_name']} (Reason: {rejection_reason})",
+        access_type='DOCTOR_REJECTED',
+        ip_address=client_ip
+    )
+
+    flash(f"Verification application for Dr. {doctor['full_name']} has been rejected.", "info")
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/logout', methods=['GET', 'POST'])
+def admin_logout():
+    """Sign out administrator and clear session."""
+    session.clear()
+    flash("You have been signed out of the Administrator Console.", "info")
+    return redirect(url_for('admin_login'))
 
 
 # ============================================================================
