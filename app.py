@@ -178,6 +178,42 @@ class PgConnectionWrapper:
         return cur.execute(query, params)
 
 
+def to_str_timestamp(val):
+    """Safely convert any datetime object, timestamp string, or None to ISO-like string format."""
+    if val is None:
+        return ''
+    if isinstance(val, datetime):
+        return val.strftime('%Y-%m-%d %H:%M:%S')
+    return str(val)
+
+
+def is_timestamp_expired(expires_at, now_dt=None):
+    """
+    Safely checks if an expires_at value (datetime object or string) is expired.
+    Returns True if expired, False if still active.
+    """
+    if not expires_at:
+        return True
+    if now_dt is None:
+        now_dt = datetime.now(timezone.utc)
+
+    if isinstance(expires_at, datetime):
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        return expires_at < now_dt
+
+    s = str(expires_at).strip()
+    try:
+        dt = datetime.strptime(s[:19], '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+        return dt < now_dt
+    except Exception:
+        try:
+            dt = datetime.fromisoformat(s).replace(tzinfo=timezone.utc)
+            return dt < now_dt
+        except Exception:
+            return s < now_dt.strftime('%Y-%m-%d %H:%M:%S')
+
+
 def get_db_connection():
     """
     Establish and return a database connection.
@@ -192,7 +228,10 @@ def get_db_connection():
             import psycopg2.extras
             if db_url.startswith('postgres://'):
                 db_url = 'postgresql://' + db_url[len('postgres://'):]
-            raw_conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.DictCursor, connect_timeout=5)
+            if 'sslmode=' not in db_url:
+                separator = '&' if '?' in db_url else '?'
+                db_url = f"{db_url}{separator}sslmode=require"
+            raw_conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.DictCursor, connect_timeout=8)
             return PgConnectionWrapper(raw_conn)
         except Exception as e:
             print(f"[SahayID Warning] Could not connect to PostgreSQL ({e}). Falling back to local SQLite.")
@@ -963,6 +1002,7 @@ def login():
             return redirect(url_for('dashboard'))
 
         except Exception as e:
+            print(f"[SahayID Login Error] {e}")
             flash("Unable to sign in right now. Please try again.", "error")
             return render_template('login.html', identifier=identifier)
 
@@ -1040,6 +1080,7 @@ def doctor_login():
             return redirect(url_for('doctor_dashboard'))
 
         except Exception as e:
+            print(f"[SahayID Doctor Login Error] {e}")
             flash("Unable to sign in as doctor right now. Please try again.", "error")
             return render_template('doctor_login.html', identifier=identifier)
 
@@ -1381,8 +1422,7 @@ def doctor_access_request_status(request_token):
     patient = cursor.fetchone()
 
     # Check auto-expiry for pending requests
-    now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
-    if req['status'] == 'PENDING' and req['expires_at'] < now_str:
+    if req['status'] == 'PENDING' and is_timestamp_expired(req['expires_at']):
         cursor.execute("UPDATE access_requests SET status = 'EXPIRED' WHERE id = ?", (req['id'],))
         db.commit()
         cursor.execute("SELECT * FROM access_requests WHERE id = ?", (req['id'],))
@@ -1412,13 +1452,11 @@ def doctor_verify_otp(request_token):
         flash("Access request not found.", "error")
         return redirect(url_for('doctor_dashboard'))
 
-    now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
-
     if req['status'] == 'DENIED':
         flash("This access request was denied by the patient.", "error")
         return redirect(url_for('doctor_access_request_status', request_token=request_token))
 
-    if req['status'] == 'EXPIRED' or req['expires_at'] < now_str:
+    if req['status'] == 'EXPIRED' or is_timestamp_expired(req['expires_at']):
         flash("This authorization request or OTP has expired. Please initiate a new request.", "error")
         return redirect(url_for('doctor_access_request_status', request_token=request_token))
 
@@ -1624,8 +1662,7 @@ def doctor_patient_view(medi_id):
 
     # If authorized via dict with expiry timestamp, verify not expired
     if isinstance(auth_data, dict) and 'authorized_until' in auth_data:
-        now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
-        if auth_data['authorized_until'] < now_str:
+        if is_timestamp_expired(auth_data['authorized_until']):
             session.pop(f'doc_auth_{patient["medi_id"]}', None)
             flash("Authorized clinical session has expired. Please initiate a new access request.", "error")
             return redirect(url_for('doctor_patient_confirm', medi_id=patient['medi_id']))
@@ -1726,49 +1763,60 @@ def dashboard():
     completion_pct = calculate_profile_completion(profile, contact_count)
 
     # Ensure QR code exists on disk for current user (handles legacy/existing users)
-    qr_file = os.path.join(QR_DIR, f"{user['medi_id']}.png")
-    if not os.path.exists(qr_file):
-        base_url = request.host_url.rstrip('/') if request else None
-        generate_medi_qr(user['medi_id'], base_url)
+    try:
+        qr_file = os.path.join(QR_DIR, f"{user['medi_id']}.png")
+        if not os.path.exists(qr_file):
+            base_url = request.host_url.rstrip('/') if request else None
+            generate_medi_qr(user['medi_id'], base_url)
+    except Exception as e:
+        print(f"[SahayID QR Notice] {e}")
 
     # Retrieve Emergency Access History & Doctor Access Events
-    cursor.execute(
-        """
-        SELECT responder_name, organization, reason, created_at, expires_at, accessed_at, ip_address, 'EMERGENCY' as access_source
-        FROM emergency_access
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-        LIMIT 10
-        """,
-        (user_id,)
-    )
-    emergency_rows = cursor.fetchall()
+    try:
+        cursor.execute(
+            """
+            SELECT responder_name, organization, reason, created_at, expires_at, accessed_at, ip_address, 'EMERGENCY' as access_source
+            FROM emergency_access
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 10
+            """,
+            (user_id,)
+        )
+        emergency_rows = cursor.fetchall() or []
+    except Exception as e:
+        print(f"[SahayID Warning] Could not fetch emergency access history: {e}")
+        emergency_rows = []
 
-    cursor.execute(
-        """
-        SELECT actor_name as responder_name, organization, reason, accessed_at as created_at,
-               'Authorized Session' as expires_at, accessed_at, ip_address, 'DOCTOR' as access_source
-        FROM access_logs
-        WHERE user_id = ? AND access_type = 'DOCTOR_ACCESS'
-        ORDER BY accessed_at DESC
-        LIMIT 10
-        """,
-        (user_id,)
-    )
-    doctor_rows = cursor.fetchall()
+    try:
+        cursor.execute(
+            """
+            SELECT actor_name as responder_name, organization, reason, accessed_at as created_at,
+                   'Authorized Session' as expires_at, accessed_at, ip_address, 'DOCTOR' as access_source
+            FROM access_logs
+            WHERE user_id = ? AND access_type = 'DOCTOR_ACCESS'
+            ORDER BY accessed_at DESC
+            LIMIT 10
+            """,
+            (user_id,)
+        )
+        doctor_rows = cursor.fetchall() or []
+    except Exception as e:
+        print(f"[SahayID Warning] Could not fetch doctor access history: {e}")
+        doctor_rows = []
 
     all_history_rows = list(emergency_rows) + list(doctor_rows)
-    all_history_rows.sort(key=lambda r: r['created_at'] or '', reverse=True)
+    all_history_rows.sort(key=lambda r: to_str_timestamp(r['created_at']), reverse=True)
 
     access_history = []
-    now_utc_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    now_dt = datetime.now(timezone.utc)
 
     for row in all_history_rows[:15]:
         if row['access_source'] == 'DOCTOR':
             status = 'Authorized'
             actor_label = row['responder_name'] or "Verified Physician"
         else:
-            status = 'Active' if (row['expires_at'] and row['expires_at'] > now_utc_str) else 'Expired'
+            status = 'Active' if not is_timestamp_expired(row['expires_at'], now_dt) else 'Expired'
             actor_label = row['responder_name']
 
         access_history.append({
@@ -1776,30 +1824,38 @@ def dashboard():
             'responder_name': actor_label,
             'organization': row['organization'],
             'reason': row['reason'],
-            'created_at': row['created_at'],
+            'created_at': to_str_timestamp(row['created_at']),
             'status': status
         })
 
     # Retrieve patient emergency contacts
-    cursor.execute(
-        "SELECT * FROM emergency_contacts WHERE user_id = ? ORDER BY id ASC",
-        (user_id,)
-    )
-    emergency_contacts_list = cursor.fetchall()
+    try:
+        cursor.execute(
+            "SELECT * FROM emergency_contacts WHERE user_id = ? ORDER BY id ASC",
+            (user_id,)
+        )
+        emergency_contacts_list = cursor.fetchall() or []
+    except Exception as e:
+        print(f"[SahayID Warning] Could not fetch emergency contacts: {e}")
+        emergency_contacts_list = []
 
     # Retrieve patient access requests (consent requests from doctors)
-    cursor.execute(
-        """
-        SELECT ar.*, d.full_name as doctor_name, d.doctor_id as doc_code, d.specialization, d.hospital_or_clinic, d.registration_number
-        FROM access_requests ar
-        JOIN doctors d ON ar.doctor_id = d.id
-        WHERE ar.patient_id = ?
-        ORDER BY ar.created_at DESC
-        LIMIT 10
-        """,
-        (user_id,)
-    )
-    access_requests = cursor.fetchall()
+    try:
+        cursor.execute(
+            """
+            SELECT ar.*, d.full_name as doctor_name, d.doctor_id as doc_code, d.specialization, d.hospital_or_clinic, d.registration_number
+            FROM access_requests ar
+            JOIN doctors d ON ar.doctor_id = d.id
+            WHERE ar.patient_id = ?
+            ORDER BY ar.created_at DESC
+            LIMIT 10
+            """,
+            (user_id,)
+        )
+        access_requests = cursor.fetchall() or []
+    except Exception as e:
+        print(f"[SahayID Warning] Could not fetch access requests: {e}")
+        access_requests = []
 
     return render_template(
         'dashboard.html',
@@ -2326,12 +2382,13 @@ def emergency_verify(medi_id):
                                    responder_name=responder_name, organization=organization, reason=reason), 400
 
         # Rate limiting / abuse protection: check attempts within last 10 minutes
+        ten_mins_ago = (datetime.now(timezone.utc) - timedelta(minutes=10)).strftime('%Y-%m-%d %H:%M:%S')
         cursor.execute(
             """
             SELECT COUNT(*) as count FROM emergency_access
-            WHERE user_id = ? AND datetime(created_at) > datetime('now', '-10 minutes')
+            WHERE user_id = ? AND created_at > ?
             """,
-            (user['id'],)
+            (user['id'], ten_mins_ago)
         )
         recent_count = cursor.fetchone()['count']
         if recent_count >= 5:
@@ -2427,10 +2484,18 @@ def emergency_access_view(token):
 
     # Server-side Expiration Check
     now_utc = datetime.now(timezone.utc)
-    try:
-        expires_dt = datetime.strptime(access_record['expires_at'], '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
-    except ValueError:
-        expires_dt = datetime.fromisoformat(access_record['expires_at']).replace(tzinfo=timezone.utc)
+    if isinstance(access_record['expires_at'], datetime):
+        expires_dt = access_record['expires_at']
+        if expires_dt.tzinfo is None:
+            expires_dt = expires_dt.replace(tzinfo=timezone.utc)
+    else:
+        try:
+            expires_dt = datetime.strptime(str(access_record['expires_at'])[:19], '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+        except Exception:
+            try:
+                expires_dt = datetime.fromisoformat(str(access_record['expires_at'])).replace(tzinfo=timezone.utc)
+            except Exception:
+                expires_dt = now_utc
 
     if now_utc > expires_dt:
         return render_template(
