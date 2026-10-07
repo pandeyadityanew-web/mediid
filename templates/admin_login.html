@@ -48,72 +48,83 @@
     </header>
 
     <!-- Main Content -->
-    <main class="main-wrapper">
-        <div class="auth-container">
-            <!-- Flash Notification Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="flash-messages">
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
+    <main class="auth-page-wrapper">
+        <div class="auth-page-container">
+            <div class="auth-form-column">
+                <!-- Flash Notification Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-messages" style="margin-bottom: 1.25rem;">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
 
-            <div class="auth-card" style="border-top: 4px solid var(--primary);">
-                <div style="text-align: center; margin-bottom: 1.5rem;">
-                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 12px; background: rgba(2, 132, 199, 0.12); color: var(--primary); margin-bottom: 0.75rem;">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                            <path d="m9 12 2 2 4-4"/>
-                        </svg>
-                    </div>
-                    <div class="role-badge" style="background: rgba(2, 132, 199, 0.15); color: var(--primary); font-weight: 700; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px; display: inline-block; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
-                        Administrative Gateway
-                    </div>
-                    <h1 class="auth-title" style="margin-bottom: 0.35rem;">Admin Console Login</h1>
-                    <p class="auth-subtitle">Authorized administrator verification & oversight portal.</p>
-                </div>
-
-                <form action="{{ url_for('admin_login') }}" method="POST" class="auth-form" novalidate>
-                    <div class="form-group">
-                        <label for="identifier" class="form-label">Admin Username or Email</label>
-                        <input
-                            type="text"
-                            id="identifier"
-                            name="identifier"
-                            class="form-control"
-                            placeholder="admin or admin@sahayid.org"
-                            value="{{ identifier or '' }}"
-                            required
-                            autocomplete="username"
-                        >
+                <div class="auth-card" style="border-top: 4px solid var(--primary);">
+                    <!-- Brand Header -->
+                    <div class="auth-brand-header">
+                        <a href="{{ url_for('index') }}" class="auth-brand-logo-wrap">
+                            <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID Logo" class="auth-brand-logo-img">
+                            <span class="auth-brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                        </a>
+                        <p class="auth-brand-tagline">Secure medical access, when it matters most.</p>
                     </div>
 
-                    <div class="form-group">
-                        <label for="password" class="form-label">Master Password</label>
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            class="form-control"
-                            placeholder="••••••••••••"
-                            required
-                            autocomplete="current-password"
-                        >
+                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                        <div style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 12px; background: rgba(2, 132, 199, 0.12); color: var(--primary); margin-bottom: 0.75rem;">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <path d="m9 12 2 2 4-4"/>
+                            </svg>
+                        </div>
+                        <div class="role-badge" style="background: rgba(2, 132, 199, 0.15); color: var(--primary); font-weight: 700; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px; display: inline-block; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                            Administrative Gateway
+                        </div>
+                        <h1 class="auth-title" style="margin-bottom: 0.35rem;">SahayID Administration</h1>
+                        <p class="auth-subtitle">Admin Console Login &bull; Authorized administrator verification &amp; oversight portal.</p>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1rem; padding: 0.85rem;">
-                        Sign In to Admin Console &rarr;
-                    </button>
-                </form>
+                    <form action="{{ url_for('admin_login') }}" method="POST" class="auth-form" novalidate>
+                        <div class="form-group">
+                            <label for="identifier" class="form-label">Admin Username or Email</label>
+                            <input
+                                type="text"
+                                id="identifier"
+                                name="identifier"
+                                class="form-control"
+                                placeholder="admin or admin@sahayid.org"
+                                value="{{ identifier or '' }}"
+                                required
+                                autocomplete="username"
+                            >
+                        </div>
 
-                <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle); text-align: center; font-size: 0.825rem; color: var(--text-muted);">
-                    <div style="margin-bottom: 0.35rem;">
-                        <strong>Confidential System:</strong> Unauthorized access attempts are monitored and logged.
+                        <div class="form-group">
+                            <label for="password" class="form-label">Master Password</label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-control"
+                                placeholder="••••••••••••"
+                                required
+                                autocomplete="current-password"
+                            >
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1rem; padding: 0.85rem;">
+                            Sign In to Admin Console &rarr;
+                        </button>
+                    </form>
+
+                    <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle); text-align: center; font-size: 0.825rem; color: var(--text-muted);">
+                        <div style="margin-bottom: 0.35rem;">
+                            <strong>Confidential System:</strong> Unauthorized access attempts are monitored and logged.
+                        </div>
+                        <a href="{{ url_for('index') }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">&larr; Return to Public Homepage</a>
                     </div>
-                    <a href="{{ url_for('index') }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">&larr; Return to Public Homepage</a>
                 </div>
             </div>
         </div>

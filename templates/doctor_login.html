@@ -58,89 +58,100 @@
     </header>
 
     <!-- Main Content -->
-    <main class="main-wrapper">
-        <!-- Flash Message Alerts -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+    <main class="auth-page-wrapper">
+        <div class="auth-page-container">
+            <div class="auth-form-column">
+                <!-- Flash Message Alerts -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-messages" style="margin-bottom: 1.25rem;">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
 
-        <div class="auth-container">
-            <div class="auth-card" style="border-top: 4px solid var(--secondary);">
-                <!-- Role Toggle Tabs -->
-                <div class="role-toggle-tabs">
-                    <a href="{{ url_for('login') }}" class="role-tab">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        Patient Login
-                    </a>
-                    <a href="{{ url_for('doctor_login') }}" class="role-tab active">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                        </svg>
-                        Doctor Portal
-                    </a>
-                </div>
-
-                <div class="auth-header">
-                    <span class="auth-badge" style="background-color: var(--secondary-light); color: var(--secondary-hover);">
-                        Verified Healthcare Access
-                    </span>
-                    <h1 class="auth-title">Doctor Portal</h1>
-                    <p class="auth-subtitle">Sign in to search and view authorized patient records</p>
-                </div>
-
-                <div class="status-pill" style="border-left: 4px solid var(--secondary);">
-                    <span class="status-indicator" style="background-color: var(--secondary);"></span>
-                    <span>Sign in using your institutional email or assigned Doctor ID (e.g. DOC-XXXXXXXX).</span>
-                </div>
-
-                <form action="{{ url_for('doctor_login', next=request.args.get('next')) }}" method="POST">
-                    <div class="form-group">
-                        <label for="identifier" class="form-label">Doctor ID or Email Address</label>
-                        <input 
-                            type="text" 
-                            id="identifier" 
-                            name="identifier" 
-                            class="form-input" 
-                            placeholder="doctor@hospital.org or DOC-DEMO2026" 
-                            value="{{ identifier or '' }}"
-                            required
-                        >
+                <div class="auth-card" style="border-top: 4px solid var(--secondary);">
+                    <!-- Brand Header -->
+                    <div class="auth-brand-header">
+                        <a href="{{ url_for('index') }}" class="auth-brand-logo-wrap">
+                            <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID Logo" class="auth-brand-logo-img">
+                            <span class="auth-brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                        </a>
+                        <p class="auth-brand-tagline">Secure medical access, when it matters most.</p>
                     </div>
 
-                    <div class="form-group">
-                        <label for="password" class="form-label">Password</label>
-                        <input 
-                            type="password" 
-                            id="password" 
-                            name="password" 
-                            class="form-input" 
-                            placeholder="Enter your doctor account password" 
-                            required
-                        >
+                    <!-- Role Toggle Tabs -->
+                    <div class="role-toggle-tabs">
+                        <a href="{{ url_for('login') }}" class="role-tab">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            Patient Login
+                        </a>
+                        <a href="{{ url_for('doctor_login') }}" class="role-tab active">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                            </svg>
+                            Doctor Portal
+                        </a>
                     </div>
 
-                    <div class="demo-credentials-box">
-                        <div class="demo-credentials-title">Demo Doctor Credentials:</div>
-                        ID: <code>DOC-DEMO2026</code> &bull; Email: <code>doctor@sahayid.demo</code> &bull; Password: <code>DemoDoctor123!</code>
+                    <div class="auth-header">
+                        <span class="auth-badge" style="background-color: var(--secondary-light); color: var(--secondary-hover);">
+                            Verified Healthcare Access
+                        </span>
+                        <h1 class="auth-title">Doctor Portal</h1>
+                        <p class="auth-subtitle">Welcome back, Doctor. Sign in to search and view authorized patient records.</p>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-block" style="background-color: var(--secondary);">
-                        Sign In to Doctor Dashboard
-                    </button>
-                </form>
+                    <div class="status-pill" style="border-left: 4px solid var(--secondary);">
+                        <span class="status-indicator" style="background-color: var(--secondary);"></span>
+                        <span>Sign in using your institutional email or assigned Doctor ID (e.g. DOC-XXXXXXXX).</span>
+                    </div>
 
-                <div class="auth-footer" style="margin-top: 1.5rem; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
-                    Medical practitioner without an account? 
-                    <a href="{{ url_for('doctor_register') }}" style="color: var(--secondary); font-weight: 600;">Register as Doctor</a>
+                    <form action="{{ url_for('doctor_login', next=request.args.get('next')) }}" method="POST">
+                        <div class="form-group">
+                            <label for="identifier" class="form-label">Doctor ID or Email Address</label>
+                            <input 
+                                type="text" 
+                                id="identifier" 
+                                name="identifier" 
+                                class="form-input" 
+                                placeholder="doctor@hospital.org or DOC-DEMO2026" 
+                                value="{{ identifier or '' }}"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password" class="form-label">Password</label>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                name="password" 
+                                class="form-input" 
+                                placeholder="Enter your doctor account password" 
+                                required
+                            >
+                        </div>
+
+                        <div class="demo-credentials-box">
+                            <div class="demo-credentials-title">Demo Doctor Credentials:</div>
+                            ID: <code>DOC-DEMO2026</code> &bull; Email: <code>doctor@sahayid.demo</code> &bull; Password: <code>DemoDoctor123!</code>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block" style="background-color: var(--secondary);">
+                            Sign In to Doctor Dashboard
+                        </button>
+                    </form>
+
+                    <div class="auth-footer" style="margin-top: 1.5rem; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+                        New doctor? 
+                        <a href="{{ url_for('doctor_register') }}" style="color: var(--secondary); font-weight: 600;">Register for verification</a>
+                    </div>
                 </div>
             </div>
         </div>

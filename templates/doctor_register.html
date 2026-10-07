@@ -58,168 +58,179 @@
     </header>
 
     <!-- Main Content -->
-    <main class="main-wrapper">
-        <!-- Flash Message Alerts -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-
-        <div class="auth-container" style="max-width: 600px;">
-            <div class="auth-card" style="border-top: 4px solid var(--secondary);">
-                <!-- Role Toggle Tabs -->
-                <div class="role-toggle-tabs">
-                    <a href="{{ url_for('register') }}" class="role-tab">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        Patient Registration
-                    </a>
-                    <a href="{{ url_for('doctor_register') }}" class="role-tab active">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                        </svg>
-                        Doctor Registration
-                    </a>
-                </div>
-
-                <div class="auth-header">
-                    <span class="auth-badge" style="background-color: var(--secondary-light); color: var(--secondary-hover);">
-                        Healthcare Practitioner Portal
-                    </span>
-                    <h1 class="auth-title">Doctor Onboarding</h1>
-                    <p class="auth-subtitle">Register your clinical credentials to access the SahayID network</p>
-                </div>
-
-                <!-- Academic Prototype Disclaimer -->
-                <div class="alert alert-info" style="margin-bottom: 1.5rem; background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 0.85rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem;">
-                    <strong>Academic Demonstration Note:</strong> This is an academic prototype. Real government or medical council registry verification is not performed. Newly created doctor accounts will be initialized in a <em>Pending Verification</em> state.
-                </div>
-
-                <form action="{{ url_for('doctor_register') }}" method="POST">
-                    <div class="form-grid-2">
-                        <div class="form-group">
-                            <label for="full_name" class="form-label">Doctor Full Name</label>
-                            <input 
-                                type="text" 
-                                id="full_name" 
-                                name="full_name" 
-                                class="form-input" 
-                                placeholder="e.g. Dr. Jane Smith" 
-                                value="{{ full_name or '' }}"
-                                required
-                            >
+    <main class="auth-page-wrapper">
+        <div class="auth-page-container">
+            <div class="auth-form-column auth-form-wide">
+                <!-- Flash Message Alerts -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-messages" style="margin-bottom: 1.25rem;">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
                         </div>
+                    {% endif %}
+                {% endwith %}
 
-                        <div class="form-group">
-                            <label for="email" class="form-label">Institutional / Professional Email</label>
-                            <input 
-                                type="email" 
-                                id="email" 
-                                name="email" 
-                                class="form-input" 
-                                placeholder="doctor@hospital.org" 
-                                value="{{ email or '' }}"
-                                required
-                            >
-                        </div>
+                <div class="auth-card" style="border-top: 4px solid var(--secondary);">
+                    <!-- Brand Header -->
+                    <div class="auth-brand-header">
+                        <a href="{{ url_for('index') }}" class="auth-brand-logo-wrap">
+                            <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID Logo" class="auth-brand-logo-img">
+                            <span class="auth-brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                        </a>
+                        <p class="auth-brand-tagline">Secure medical access, when it matters most.</p>
                     </div>
 
-                    <div class="form-grid-2">
-                        <div class="form-group">
-                            <label for="phone" class="form-label">Contact Phone</label>
-                            <input 
-                                type="tel" 
-                                id="phone" 
-                                name="phone" 
-                                class="form-input" 
-                                placeholder="+1-555-019-0000" 
-                                value="{{ phone or '' }}"
-                            >
-                        </div>
-
-                        <div class="form-group">
-                            <label for="specialization" class="form-label">Medical Specialization</label>
-                            <input 
-                                type="text" 
-                                id="specialization" 
-                                name="specialization" 
-                                class="form-input" 
-                                placeholder="e.g. Emergency Medicine, Cardiology" 
-                                value="{{ specialization or '' }}"
-                                required
-                            >
-                        </div>
+                    <!-- Role Toggle Tabs -->
+                    <div class="role-toggle-tabs">
+                        <a href="{{ url_for('register') }}" class="role-tab">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            Patient Registration
+                        </a>
+                        <a href="{{ url_for('doctor_register') }}" class="role-tab active">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                            </svg>
+                            Doctor Registration
+                        </a>
                     </div>
 
-                    <div class="form-grid-2">
-                        <div class="form-group">
-                            <label for="hospital_or_clinic" class="form-label">Hospital or Clinic Name</label>
-                            <input 
-                                type="text" 
-                                id="hospital_or_clinic" 
-                                name="hospital_or_clinic" 
-                                class="form-input" 
-                                placeholder="e.g. City General Hospital" 
-                                value="{{ hospital_or_clinic or '' }}"
-                                required
-                            >
-                        </div>
-
-                        <div class="form-group">
-                            <label for="registration_number" class="form-label">Medical Registration / License No.</label>
-                            <input 
-                                type="text" 
-                                id="registration_number" 
-                                name="registration_number" 
-                                class="form-input" 
-                                placeholder="e.g. MED-REG-12345" 
-                                value="{{ registration_number or '' }}"
-                                required
-                            >
-                        </div>
+                    <div class="auth-header">
+                        <span class="auth-badge" style="background-color: var(--secondary-light); color: var(--secondary-hover);">
+                            Healthcare Practitioner Portal
+                        </span>
+                        <h1 class="auth-title">Create Doctor Account</h1>
+                        <p class="auth-subtitle">Register your clinical credentials to access the SahayID network</p>
                     </div>
 
-                    <div class="form-grid-2">
-                        <div class="form-group">
-                            <label for="password" class="form-label">Password</label>
-                            <input 
-                                type="password" 
-                                id="password" 
-                                name="password" 
-                                class="form-input" 
-                                placeholder="Minimum 8 characters" 
-                                required
-                            >
-                        </div>
-
-                        <div class="form-group">
-                            <label for="confirm_password" class="form-label">Confirm Password</label>
-                            <input 
-                                type="password" 
-                                id="confirm_password" 
-                                name="confirm_password" 
-                                class="form-input" 
-                                placeholder="Re-enter password" 
-                                required
-                            >
-                        </div>
+                    <!-- Verification Review Notice -->
+                    <div class="alert alert-info" style="margin-bottom: 1.5rem; background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 0.85rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem;">
+                        <strong>Professional Verification Notice:</strong> Your professional credentials will be reviewed by a SahayID administrator before clinical access is enabled.
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-block" style="background-color: var(--secondary); margin-top: 0.5rem;">
-                        Submit Doctor Registration
-                    </button>
-                </form>
+                    <form action="{{ url_for('doctor_register') }}" method="POST">
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label for="full_name" class="form-label">Doctor Full Name</label>
+                                <input 
+                                    type="text" 
+                                    id="full_name" 
+                                    name="full_name" 
+                                    class="form-input" 
+                                    placeholder="e.g. Dr. Jane Smith" 
+                                    value="{{ full_name or '' }}"
+                                    required
+                                >
+                            </div>
 
-                <div class="auth-footer" style="margin-top: 1.5rem; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
-                    Already registered? 
-                    <a href="{{ url_for('doctor_login') }}" style="color: var(--secondary); font-weight: 600;">Doctor Sign In</a>
+                            <div class="form-group">
+                                <label for="email" class="form-label">Institutional / Professional Email</label>
+                                <input 
+                                    type="email" 
+                                    id="email" 
+                                    name="email" 
+                                    class="form-input" 
+                                    placeholder="doctor@hospital.org" 
+                                    value="{{ email or '' }}"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label for="phone" class="form-label">Contact Phone</label>
+                                <input 
+                                    type="tel" 
+                                    id="phone" 
+                                    name="phone" 
+                                    class="form-input" 
+                                    placeholder="+1-555-019-0000" 
+                                    value="{{ phone or '' }}"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="specialization" class="form-label">Medical Specialization</label>
+                                <input 
+                                    type="text" 
+                                    id="specialization" 
+                                    name="specialization" 
+                                    class="form-input" 
+                                    placeholder="e.g. Emergency Medicine, Cardiology" 
+                                    value="{{ specialization or '' }}"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label for="hospital_or_clinic" class="form-label">Hospital or Clinic Name</label>
+                                <input 
+                                    type="text" 
+                                    id="hospital_or_clinic" 
+                                    name="hospital_or_clinic" 
+                                    class="form-input" 
+                                    placeholder="e.g. City General Hospital" 
+                                    value="{{ hospital_or_clinic or '' }}"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="registration_number" class="form-label">Medical Registration / License No.</label>
+                                <input 
+                                    type="text" 
+                                    id="registration_number" 
+                                    name="registration_number" 
+                                    class="form-input" 
+                                    placeholder="e.g. MED-REG-12345" 
+                                    value="{{ registration_number or '' }}"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label for="password" class="form-label">Password</label>
+                                <input 
+                                    type="password" 
+                                    id="password" 
+                                    name="password" 
+                                    class="form-input" 
+                                    placeholder="Minimum 8 characters" 
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirm_password" class="form-label">Confirm Password</label>
+                                <input 
+                                    type="password" 
+                                    id="confirm_password" 
+                                    name="confirm_password" 
+                                    class="form-input" 
+                                    placeholder="Re-enter password" 
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block" style="background-color: var(--secondary); margin-top: 0.5rem;">
+                            Submit Doctor Registration
+                        </button>
+                    </form>
+
+                    <div class="auth-footer" style="margin-top: 1.5rem; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+                        Already registered? 
+                        <a href="{{ url_for('doctor_login') }}" style="color: var(--secondary); font-weight: 600;">Doctor Sign In</a>
+                    </div>
                 </div>
             </div>
         </div>
