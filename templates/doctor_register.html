@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doctor Registration - SahayID</title>
+    <script>
+        (function() {
+            var theme = localStorage.getItem('sahayid-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
@@ -23,19 +29,21 @@
                     <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
                     <li><a href="{{ url_for('index') }}#how-it-works" class="nav-link">How It Works</a></li>
                     <li><a href="{{ url_for('faqs') }}" class="nav-link">FAQs</a></li>
+                    <li><button type="button" class="btn btn-outline-primary nav-btn pwa-install-btn">↓ Install App</button></li>
+                    <li>
+                        <button class="theme-toggle-btn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">
+                            <span class="theme-toggle-icon">🌙</span>
+                            <span class="theme-toggle-text">Dark Mode</span>
+                        </button>
+                    </li>
                     {% if session.get('role') == 'doctor' %}
                         <li><a href="{{ url_for('doctor_dashboard') }}" class="btn btn-primary nav-btn">Doctor Portal</a></li>
-                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
                         <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
                     {% elif session.get('role') == 'patient' %}
                         <li><a href="{{ url_for('dashboard') }}" class="btn btn-primary nav-btn">Patient Portal</a></li>
-                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
                         <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
                     {% else %}
-                        <li><a href="{{ url_for('login') }}" class="nav-link">Patient Login</a></li>
-                        <li><a href="{{ url_for('doctor_login') }}" class="nav-link">Doctor Portal</a></li>
-                        <li><a href="{{ url_for('doctor_register') }}" class="btn btn-primary nav-btn active">Doctor Registration</a></li>
-                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
+                        <li><a href="{{ url_for('register') }}" class="btn btn-primary nav-btn">Get Started</a></li>
                     {% endif %}
                 </ul>
             </nav>

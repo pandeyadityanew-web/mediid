@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SahayID - Critical Medical Access</title>
+    <script>
+        (function() {
+            var theme = localStorage.getItem('sahayid-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
@@ -28,19 +34,21 @@
                     <li><a href="#about" class="nav-link">About</a></li>
                     <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
                     <li><a href="#faqs" class="nav-link">FAQs</a></li>
+                    <li><button type="button" class="btn btn-outline-primary nav-btn pwa-install-btn">↓ Install App</button></li>
+                    <li>
+                        <button class="theme-toggle-btn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">
+                            <span class="theme-toggle-icon">🌙</span>
+                            <span class="theme-toggle-text">Dark Mode</span>
+                        </button>
+                    </li>
                     {% if session.get('role') == 'doctor' %}
                         <li><a href="{{ url_for('doctor_dashboard') }}" class="btn btn-primary nav-btn">Doctor Portal</a></li>
-                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
                         <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
                     {% elif session.get('role') == 'patient' %}
                         <li><a href="{{ url_for('dashboard') }}" class="btn btn-primary nav-btn">Patient Portal</a></li>
-                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
                         <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
                     {% else %}
-                        <li><a href="{{ url_for('login') }}" class="btn btn-secondary nav-btn">Patient Login</a></li>
-                        <li><a href="{{ url_for('doctor_login') }}" class="btn btn-secondary nav-btn" style="border-color: #0284c7; color: #0284c7;">Doctor Portal</a></li>
-                        <li><a href="{{ url_for('register') }}" class="btn btn-primary nav-btn">Get Started</a></li>
-                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
+                        <li><button type="button" class="btn btn-primary nav-btn get-started-trigger">Get Started</button></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -71,27 +79,35 @@
                     </h1>
 
                     <p class="hero-lead-text">
-                        SahayID allows patients to securely manage their digital medical identity, share vital clinical records under strict consent and OTP verification with licensed physicians, and provide life-saving break-glass access to first responders in emergency situations.
+                        SahayID gives you secure control over your medical information — making critical health details available to the right people when they matter most.
+                    </p>
+
+                    <p class="hero-sublead-text">
+                        Share medical information with verified doctors through consent-based access, or enable emergency break-glass access when every second counts.
                     </p>
 
                     <div class="hero-cta-group">
-                        <a href="{{ url_for('login') }}" class="btn btn-primary">Patient Login</a>
-                        <a href="{{ url_for('doctor_login') }}" class="btn btn-secondary">Doctor Portal</a>
+                        <button type="button" class="btn btn-primary get-started-trigger">Get Started</button>
                         <a href="#how-it-works" class="btn btn-secondary">How It Works</a>
+                    </div>
+
+                    <div class="hero-secondary-prompt">
+                        <span>New to SahayID?</span>
+                        <button type="button" class="hero-prompt-link get-started-trigger">Create your secure medical identity &rarr;</button>
                     </div>
 
                     <div class="hero-meta-points">
                         <div class="hero-meta-item">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-                            <span>Patient-Controlled Consent</span>
+                            <span>You Control Your Medical Data</span>
                         </div>
                         <div class="hero-meta-item">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-                            <span>OTP-Verified Clinical Access</span>
+                            <span>Verified Doctor Access</span>
                         </div>
                         <div class="hero-meta-item">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-                            <span>Immutable Audit Logging</span>
+                            <span>Every Access Is Logged</span>
                         </div>
                     </div>
                 </div>
@@ -401,7 +417,7 @@
                 <div>
                     <h4 class="footer-col-title">Portals</h4>
                     <ul class="footer-links">
-                        <li><a href="{{ url_for('login') }}" class="footer-link">Patient Sign In</a></li>
+                        <li><a href="{{ url_for('login') }}" class="footer-link">Patient Login</a></li>
                         <li><a href="{{ url_for('register') }}" class="footer-link">Patient Registration</a></li>
                         <li><a href="{{ url_for('doctor_login') }}" class="footer-link">Doctor Portal</a></li>
                         <li><a href="{{ url_for('doctor_register') }}" class="footer-link">Doctor Registration</a></li>
@@ -435,6 +451,67 @@
             </div>
         </div>
     </footer>
+
+    <!-- Role Selection Flow Modal -->
+    <div class="role-modal-overlay" id="roleSelectModal" style="display: none;" aria-hidden="true">
+        <div class="role-modal-container">
+            <div class="role-modal-header">
+                <div>
+                    <div class="role-modal-eyebrow">Get Started with SahayID</div>
+                    <h3 class="role-modal-title">Select Your Gateway</h3>
+                </div>
+                <button type="button" class="role-modal-close" id="closeRoleModalBtn" aria-label="Close modal">&times;</button>
+            </div>
+
+            <p class="role-modal-subtitle">
+                Choose your role to sign in or create a verified account on the SahayID network.
+            </p>
+
+            <div class="role-select-grid">
+                <!-- Patient Card -->
+                <div class="role-card">
+                    <div class="role-card-badge patient-badge">Patient Portal</div>
+                    <div class="role-card-icon patient-icon">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <h4 class="role-card-title">Patient & Individual</h4>
+                    <p class="role-card-desc">
+                        Manage your personal medical identity, generate your zero-knowledge QR badge, and control doctor access OTPs.
+                    </p>
+                    <div class="role-card-actions">
+                        <a href="{{ url_for('register') }}" class="btn btn-primary role-btn">Create Patient Account</a>
+                        <a href="{{ url_for('login') }}" class="btn btn-secondary role-btn">Patient Login</a>
+                    </div>
+                </div>
+
+                <!-- Doctor Card -->
+                <div class="role-card">
+                    <div class="role-card-badge doctor-badge">Doctor Portal</div>
+                    <div class="role-card-icon doctor-icon">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                        </svg>
+                    </div>
+                    <h4 class="role-card-title">Physician & Clinician</h4>
+                    <p class="role-card-desc">
+                        Authorized clinical patient search, QR badge scanning, OTP verification, and emergency break-glass triage.
+                    </p>
+                    <div class="role-card-actions">
+                        <a href="{{ url_for('doctor_login') }}" class="btn btn-primary role-btn" style="background-color: var(--navy-900); border-color: var(--navy-900); color: #ffffff !important;">Doctor Portal Login</a>
+                        <a href="{{ url_for('doctor_register') }}" class="btn btn-secondary role-btn">Doctor Registration</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="role-modal-footer">
+                <span>Need immediate triage access?</span>
+                <a href="#how-it-works" class="role-modal-link" id="roleModalBreakGlassLink">Learn about Break-Glass protocol &rarr;</a>
+            </div>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>

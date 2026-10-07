@@ -364,7 +364,98 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 10. PWA Service Worker Registration & Subtle Install Prompt
+    // 10. Dark / Light Mode Theme System
+    const applyTheme = (theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+        const toggleBtns = document.querySelectorAll('.theme-toggle-btn');
+        toggleBtns.forEach(btn => {
+            const icon = btn.querySelector('.theme-toggle-icon');
+            const text = btn.querySelector('.theme-toggle-text');
+            if (icon) {
+                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+            }
+            if (text) {
+                text.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+            }
+            btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode');
+            btn.setAttribute('title', theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode');
+        });
+    };
+
+    const currentTheme = localStorage.getItem('sahayid-theme') || 'light';
+    applyTheme(currentTheme);
+
+    const themeToggleBtns = document.querySelectorAll('.theme-toggle-btn');
+    themeToggleBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const activeTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const nextTheme = activeTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+            localStorage.setItem('sahayid-theme', nextTheme);
+        });
+    });
+
+    // 11. Role Selection Flow Modal ("Get Started")
+    const roleModal = document.getElementById('roleSelectModal');
+    const closeRoleModalBtn = document.getElementById('closeRoleModalBtn');
+    const roleTriggers = document.querySelectorAll('.get-started-trigger');
+
+    const openRoleModal = (e) => {
+        if (e) e.preventDefault();
+        if (roleModal) {
+            roleModal.style.display = 'flex';
+            // Force reflow for smooth animation
+            void roleModal.offsetWidth;
+            roleModal.classList.add('active');
+            roleModal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+    };
+
+    const closeRoleModal = () => {
+        if (roleModal) {
+            roleModal.classList.remove('active');
+            roleModal.setAttribute('aria-hidden', 'true');
+            setTimeout(() => {
+                if (!roleModal.classList.contains('active')) {
+                    roleModal.style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+            }, 250);
+        }
+    };
+
+    roleTriggers.forEach(trigger => {
+        trigger.addEventListener('click', openRoleModal);
+    });
+
+    if (closeRoleModalBtn) {
+        closeRoleModalBtn.addEventListener('click', closeRoleModal);
+    }
+
+    if (roleModal) {
+        roleModal.addEventListener('click', (e) => {
+            if (e.target === roleModal) {
+                closeRoleModal();
+            }
+        });
+
+        const roleModalBreakGlass = document.getElementById('roleModalBreakGlassLink');
+        if (roleModalBreakGlass) {
+            roleModalBreakGlass.addEventListener('click', () => {
+                closeRoleModal();
+            });
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && roleModal && roleModal.classList.contains('active')) {
+            closeRoleModal();
+        }
+    });
+
+    // 12. PWA Service Worker Registration & Subtle Install Prompt
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/static/sw.js').catch(() => {});
@@ -373,30 +464,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let deferredPrompt = null;
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const installBtns = document.querySelectorAll('.pwa-install-btn');
+
+    if (isStandalone) {
+        installBtns.forEach(b => b.style.display = 'none');
+    } else {
+        installBtns.forEach(b => {
+            b.style.display = 'inline-flex';
+            b.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const choice = await deferredPrompt.userChoice;
+                    if (choice && choice.outcome === 'accepted') {
+                        installBtns.forEach(btn => btn.style.display = 'none');
+                    }
+                    deferredPrompt = null;
+                } else {
+                    alert('To install SahayID:\n\n• On Chrome/Edge desktop: Click the install icon in the URL bar.\n• On iPhone/iPad: Tap Share and select "Add to Home Screen".\n• On Android: Tap browser menu and select "Install app" or "Add to Home screen".');
+                }
+            });
+        });
+    }
 
     window.addEventListener('beforeinstallprompt', (e) => {
         if (isStandalone) return;
         e.preventDefault();
         deferredPrompt = e;
-        const installBtns = document.querySelectorAll('.pwa-install-btn');
         installBtns.forEach(btn => {
             btn.style.display = 'inline-flex';
-            btn.addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const choice = await deferredPrompt.userChoice;
-                    if (choice && choice.outcome === 'accepted') {
-                        installBtns.forEach(b => b.style.display = 'none');
-                    }
-                    deferredPrompt = null;
-                }
-            });
         });
     });
 
     window.addEventListener('appinstalled', () => {
         deferredPrompt = null;
-        const installBtns = document.querySelectorAll('.pwa-install-btn');
         installBtns.forEach(b => b.style.display = 'none');
     });
 

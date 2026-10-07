@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emergency Break-Glass Record - SahayID</title>
+    <script>
+        (function() {
+            var theme = localStorage.getItem('sahayid-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
@@ -17,7 +23,13 @@
                 <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
                 <span style="display:none;">MediID</span>
             </a>
-            <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Emergency Break-Glass</span>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <button class="theme-toggle-btn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">
+                    <span class="theme-toggle-icon">🌙</span>
+                    <span class="theme-toggle-text">Dark Mode</span>
+                </button>
+                <span class="badge-blood" style="font-size: 0.85rem; padding: 0.35rem 0.85rem;">Emergency Break-Glass</span>
+            </div>
         </div>
     </header>
 
