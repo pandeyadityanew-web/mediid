@@ -133,13 +133,22 @@ def run_new_feature_tests():
     passed += 1
     print("  --> PASS: Doctor Dashboard contains QR Scanner triggers and Break-Glass portal.")
 
-    # 7. Test Static Assets (CSS, JS, Logo, Video, Manifest)
-    print("\n[Check 7/8] Verifying Static Asset Serving...")
-    for asset in ['/static/css/style.css', '/static/js/script.js', '/static/images/sahayid-logo.jpg', '/static/manifest.json']:
+    # 7. Test Static & PWA Assets (CSS, JS, Logo, Manifest, SW, Favicon)
+    print("\n[Check 7/8] Verifying Static & PWA Asset Serving (/manifest.json, /sw.js, /favicon.ico)...")
+    for asset in ['/static/css/style.css', '/static/js/script.js', '/static/images/sahayid-logo.jpg', '/static/manifest.json', '/manifest.json', '/manifest.webmanifest', '/sw.js', '/favicon.ico']:
         a_resp = client.get(asset)
-        assert a_resp.status_code == 200, f"Failed to serve {asset}"
+        assert a_resp.status_code == 200, f"Failed to serve {asset}: {a_resp.status_code}"
+
+    # Check SW header
+    sw_resp = client.get('/sw.js')
+    assert sw_resp.headers.get('Service-Worker-Allowed') == '/', "Service-Worker-Allowed header missing or incorrect"
+
+    # Check Manifest mime
+    manifest_resp = client.get('/manifest.json')
+    assert 'json' in manifest_resp.content_type, f"Manifest mime type should be json, got {manifest_resp.content_type}"
+
     passed += 1
-    print("  --> PASS: All core static assets return HTTP 200.")
+    print("  --> PASS: All core static & PWA assets return HTTP 200 with correct headers.")
 
     # 8. Test Security Headers on New Routes
     print("\n[Check 8/8] Verifying Security Headers on /faqs and /doctor/profile...")

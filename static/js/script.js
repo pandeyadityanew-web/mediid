@@ -455,38 +455,97 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 12. PWA Service Worker Registration & Subtle Install Prompt
+    // 12. Native PWA Service Worker Registration & Standard Install Prompt
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+            navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => {
+                console.warn('[SahayID PWA] Service Worker registration skipped:', err);
+            });
         });
     }
 
     let deferredPrompt = null;
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                         window.navigator.standalone === true ||
+                         document.referrer.includes('android-app://');
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const installBtns = document.querySelectorAll('.pwa-install-btn');
+
+    // Create & reveal iOS install guidance sheet
+    function openIosInstallSheet() {
+        let sheet = document.getElementById('iosInstallSheet');
+        if (!sheet) {
+            sheet = document.createElement('div');
+            sheet.id = 'iosInstallSheet';
+            sheet.className = 'ios-install-backdrop';
+            sheet.innerHTML = `
+                <div class="ios-install-card">
+                    <div class="ios-install-header">
+                        <div class="ios-install-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Install SahayID
+                        </div>
+                        <button type="button" class="ios-install-close" aria-label="Close modal">&times;</button>
+                    </div>
+                    <p class="ios-install-desc">Install SahayID on your device for instant emergency access and clinical records:</p>
+                    <div class="ios-install-steps">
+                        <div class="ios-step-item">
+                            <span class="ios-step-badge">1</span>
+                            <span>Tap the <strong>Share</strong> button <svg style="display:inline; vertical-align:middle;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> in Safari toolbar.</span>
+                        </div>
+                        <div class="ios-step-item">
+                            <span class="ios-step-badge">2</span>
+                            <span>Scroll down and select <strong>Add to Home Screen</strong>.</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(sheet);
+            const closeBtn = sheet.querySelector('.ios-install-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    sheet.classList.remove('active');
+                });
+            }
+            sheet.addEventListener('click', (e) => {
+                if (e.target === sheet) {
+                    sheet.classList.remove('active');
+                }
+            });
+        }
+        sheet.classList.add('active');
+    }
 
     if (isStandalone) {
         installBtns.forEach(b => b.style.display = 'none');
     } else {
+        if (isIos) {
+            installBtns.forEach(b => b.style.display = 'inline-flex');
+        }
+
         installBtns.forEach(b => {
-            b.style.display = 'inline-flex';
             b.addEventListener('click', async (e) => {
                 e.preventDefault();
                 if (deferredPrompt) {
+                    // Trigger native browser installation prompt dialog
                     deferredPrompt.prompt();
-                    const choice = await deferredPrompt.userChoice;
-                    if (choice && choice.outcome === 'accepted') {
-                        installBtns.forEach(btn => btn.style.display = 'none');
+                    try {
+                        const choiceResult = await deferredPrompt.userChoice;
+                        if (choiceResult && choiceResult.outcome === 'accepted') {
+                            installBtns.forEach(btn => btn.style.display = 'none');
+                        }
+                    } catch (err) {
+                        console.warn('[SahayID PWA] Prompt outcome error:', err);
                     }
                     deferredPrompt = null;
-                } else {
-                    alert('To install SahayID:\n\n• On Chrome/Edge desktop: Click the install icon in the URL bar.\n• On iPhone/iPad: Tap Share and select "Add to Home Screen".\n• On Android: Tap browser menu and select "Install app" or "Add to Home screen".');
+                } else if (isIos) {
+                    openIosInstallSheet();
                 }
             });
         });
     }
 
+    // Capture standard BeforeInstallPromptEvent on Chrome / Edge / Android
     window.addEventListener('beforeinstallprompt', (e) => {
         if (isStandalone) return;
         e.preventDefault();

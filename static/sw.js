@@ -1,12 +1,13 @@
 // SahayID Service Worker for PWA installation & caching
-const CACHE_NAME = 'sahayid-v1';
+const CACHE_NAME = 'sahayid-v2';
 const ASSETS = [
   '/',
+  '/manifest.json',
+  '/static/manifest.json',
   '/static/css/style.css',
   '/static/js/script.js',
   '/static/images/sahayid-logo.jpg',
-  '/static/images/wave-bg.png',
-  '/static/manifest.json'
+  '/static/images/favicon.png'
 ];
 
 self.addEventListener('install', (e) => {
@@ -31,8 +32,10 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Network first, fallback to cache for static resources
-  if (e.request.method === 'GET' && e.request.url.includes('/static/')) {
+  if (e.request.method !== 'GET') return;
+
+  // Static assets network-first with cache fallback
+  if (e.request.url.includes('/static/') || e.request.url.includes('/manifest.json')) {
     e.respondWith(
       fetch(e.request).catch(() => caches.match(e.request))
     );

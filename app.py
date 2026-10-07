@@ -777,6 +777,28 @@ def serve_dynamic_qr(medi_id):
     return send_file(buf, mimetype='image/png')
 
 
+@app.route('/manifest.json')
+@app.route('/manifest.webmanifest')
+def manifest_json():
+    """Serves the PWA Web App Manifest."""
+    return send_file(os.path.join(BASE_DIR, 'static', 'manifest.json'), mimetype='application/manifest+json')
+
+
+@app.route('/sw.js')
+def service_worker():
+    """Serves the Service Worker at root scope with Service-Worker-Allowed header."""
+    response = send_file(os.path.join(BASE_DIR, 'static', 'sw.js'), mimetype='application/javascript')
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
+
+@app.route('/favicon.ico')
+def favicon_ico():
+    """Serves the site favicon."""
+    return send_file(os.path.join(BASE_DIR, 'static', 'favicon.ico'), mimetype='image/x-icon')
+
+
 # ============================================================================
 # Public & Authentication Routes
 # ============================================================================

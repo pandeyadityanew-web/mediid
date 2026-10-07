@@ -1,8 +1,10 @@
 {
+  "id": "/",
   "name": "SahayID - Critical Medical Access",
   "short_name": "SahayID",
   "description": "Patient-Controlled Medical Identity, Authorized Clinical Portal & Emergency Gateway",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0c2340",
   "theme_color": "#0284c7",
@@ -11,12 +13,25 @@
     {
       "src": "/static/images/sahayid-logo.jpg",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/jpeg",
+      "purpose": "any"
     },
     {
       "src": "/static/images/sahayid-logo.jpg",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
     }
+  ],
+  "categories": [
+    "medical",
+    "health",
+    "utilities"
   ]
 }
