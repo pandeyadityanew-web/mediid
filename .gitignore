@@ -11,6 +11,12 @@ env/
 # Environment secrets
 .env
 .env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.env.local
 
 # SQLite database files
 *.db

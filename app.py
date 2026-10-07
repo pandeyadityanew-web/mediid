@@ -825,24 +825,46 @@ def init_db():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_patient ON access_requests (patient_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_doctor ON access_requests (doctor_id);")
 
-        # Seed default master administrator if none exists
-        try:
-            cursor.execute("SELECT id FROM admins LIMIT 1;")
-            if not cursor.fetchone():
+        # Seed or sync master administrator ONLY if ADMIN_PASSWORD environment variable is configured
+        admin_pass = os.environ.get('ADMIN_PASSWORD')
+        if admin_pass and admin_pass.strip():
+            try:
                 admin_email = os.environ.get('ADMIN_EMAIL', 'admin@sahayid.org').strip().lower()
                 admin_user = os.environ.get('ADMIN_USERNAME', 'admin').strip().lower()
                 admin_name = os.environ.get('ADMIN_NAME', 'System Administrator').strip()
-                admin_pass = os.environ.get('ADMIN_PASSWORD', 'AdminSahay@2026!')
-                admin_hash = generate_password_hash(admin_pass)
+                admin_hash = generate_password_hash(admin_pass.strip())
                 cursor.execute(
-                    """
-                    INSERT INTO admins (username, email, full_name, password_hash)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    (admin_user, admin_email, admin_name, admin_hash)
+                    "SELECT id FROM admins WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?) LIMIT 1;",
+                    (admin_user, admin_email)
                 )
-        except Exception:
-            pass
+                existing_admin = cursor.fetchone()
+                if not existing_admin:
+                    cursor.execute(
+                        """
+                        INSERT INTO admins (username, email, full_name, password_hash)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (admin_user, admin_email, admin_name, admin_hash)
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        UPDATE admins
+                        SET password_hash = ?, full_name = ?
+                        WHERE id = ?
+                        """,
+                        (admin_hash, admin_name, existing_admin['id'])
+                    )
+            except Exception as e:
+                print(f"[SahayID Security Notice] Administrator provisioning notice: {e}")
+        else:
+            try:
+                cursor.execute("SELECT COUNT(*) AS count FROM admins;")
+                admin_count = cursor.fetchone()
+                if not admin_count or admin_count['count'] == 0:
+                    print("[SahayID Security Notice] ADMIN_PASSWORD environment variable is not configured. Admin provisioning paused until configured.")
+            except Exception:
+                pass
 
         conn.commit()
     finally:
@@ -2711,6 +2733,15 @@ def admin_login():
 
     db = get_db()
     cursor = db.cursor()
+
+    # Fail securely if no administrator account has been provisioned
+    cursor.execute("SELECT COUNT(*) AS count FROM admins;")
+    admin_count_row = cursor.fetchone()
+    admin_count = admin_count_row['count'] if admin_count_row else 0
+    if admin_count == 0:
+        flash("Administrator access is unconfigured. The ADMIN_PASSWORD environment variable must be set in your deployment environment.", "error")
+        return render_template('admin_login.html', identifier=identifier), 503
+
     cursor.execute(
         "SELECT * FROM admins WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?) LIMIT 1",
         (identifier, identifier)
