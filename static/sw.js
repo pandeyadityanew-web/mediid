@@ -1,5 +1,5 @@
 // SahayID Service Worker for PWA installation & caching
-const CACHE_NAME = 'sahayid-v2';
+const CACHE_NAME = 'sahayid-v3';
 const ASSETS = [
   '/',
   '/manifest.json',
@@ -7,6 +7,9 @@ const ASSETS = [
   '/static/css/style.css',
   '/static/js/script.js',
   '/static/images/sahayid-logo.jpg',
+  '/static/images/icon-192.png',
+  '/static/images/icon-512.png',
+  '/static/images/apple-touch-icon.png',
   '/static/images/favicon.png'
 ];
 

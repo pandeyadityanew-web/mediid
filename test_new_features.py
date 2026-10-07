@@ -133,9 +133,21 @@ def run_new_feature_tests():
     passed += 1
     print("  --> PASS: Doctor Dashboard contains QR Scanner triggers and Break-Glass portal.")
 
-    # 7. Test Static & PWA Assets (CSS, JS, Logo, Manifest, SW, Favicon)
-    print("\n[Check 7/8] Verifying Static & PWA Asset Serving (/manifest.json, /sw.js, /favicon.ico)...")
-    for asset in ['/static/css/style.css', '/static/js/script.js', '/static/images/sahayid-logo.jpg', '/static/manifest.json', '/manifest.json', '/manifest.webmanifest', '/sw.js', '/favicon.ico']:
+    # 7. Test Static & PWA Assets (CSS, JS, Logo, Manifest, SW, Favicon, PNG Icons)
+    print("\n[Check 7/8] Verifying Static & PWA Asset Serving (/manifest.json, /sw.js, /favicon.ico, PNG icons)...")
+    for asset in [
+        '/static/css/style.css',
+        '/static/js/script.js',
+        '/static/images/sahayid-logo.jpg',
+        '/static/images/icon-192.png',
+        '/static/images/icon-512.png',
+        '/static/images/apple-touch-icon.png',
+        '/static/manifest.json',
+        '/manifest.json',
+        '/manifest.webmanifest',
+        '/sw.js',
+        '/favicon.ico'
+    ]:
         a_resp = client.get(asset)
         assert a_resp.status_code == 200, f"Failed to serve {asset}: {a_resp.status_code}"
 

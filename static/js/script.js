@@ -3,6 +3,22 @@
  * Critical Medical Access Platform
  */
 
+// Early PWA beforeinstallprompt capture & Service Worker registration
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    console.log('[SahayID PWA] beforeinstallprompt event captured.');
+});
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => {
+            console.warn('[SahayID PWA] Service Worker registration skipped:', err);
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Mobile Top Navigation Menu Toggle
     const navToggle = document.getElementById('navToggle');
@@ -455,16 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 12. Native PWA Service Worker Registration & Standard Install Prompt
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => {
-                console.warn('[SahayID PWA] Service Worker registration skipped:', err);
-            });
-        });
-    }
-
-    let deferredPrompt = null;
+    // 12. Native PWA & Install App Handling
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                          window.navigator.standalone === true ||
                          document.referrer.includes('android-app://');
@@ -516,14 +523,53 @@ document.addEventListener('DOMContentLoaded', () => {
         sheet.classList.add('active');
     }
 
+    // Small informational modal for browsers where native prompt is pending or unavailable
+    function openPwaInfoModal() {
+        let modal = document.getElementById('pwaInfoModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'pwaInfoModal';
+            modal.className = 'ios-install-backdrop';
+            modal.innerHTML = `
+                <div class="ios-install-card">
+                    <div class="ios-install-header">
+                        <div class="ios-install-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Install SahayID
+                        </div>
+                        <button type="button" class="ios-install-close" aria-label="Close modal">&times;</button>
+                    </div>
+                    <p class="ios-install-desc">SahayID is ready to install directly onto your device for quick offline and emergency access:</p>
+                    <div class="ios-install-steps">
+                        <div class="ios-step-item">
+                            <span class="ios-step-badge">✦</span>
+                            <span>Click the <strong>Install</strong> icon in your browser's address bar or open browser menu (<strong>⋮</strong>) &rarr; <strong>Install SahayID</strong>.</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            const closeBtn = modal.querySelector('.ios-install-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    modal.classList.remove('active');
+                });
+            }
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        }
+        modal.classList.add('active');
+    }
+
     if (isStandalone) {
         installBtns.forEach(b => b.style.display = 'none');
     } else {
-        if (isIos) {
-            installBtns.forEach(b => b.style.display = 'inline-flex');
-        }
-
+        // Keep Install App button visible in navigation
         installBtns.forEach(b => {
+            b.style.display = 'inline-flex';
             b.addEventListener('click', async (e) => {
                 e.preventDefault();
                 if (deferredPrompt) {
@@ -540,20 +586,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     deferredPrompt = null;
                 } else if (isIos) {
                     openIosInstallSheet();
+                } else {
+                    openPwaInfoModal();
                 }
             });
         });
     }
-
-    // Capture standard BeforeInstallPromptEvent on Chrome / Edge / Android
-    window.addEventListener('beforeinstallprompt', (e) => {
-        if (isStandalone) return;
-        e.preventDefault();
-        deferredPrompt = e;
-        installBtns.forEach(btn => {
-            btn.style.display = 'inline-flex';
-        });
-    });
 
     window.addEventListener('appinstalled', () => {
         deferredPrompt = null;
