@@ -3,6 +3,7 @@ SahayID - Digital Medical Identity System
 Tagline: CRITICAL MEDICAL ACCESS
 """
 
+import base64
 import os
 import secrets
 import string
@@ -512,6 +513,22 @@ def init_db():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_patient ON access_requests (patient_id);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_doctor ON access_requests (doctor_id);")
 
+            # Defensively update existing PostgreSQL tables if columns were added later
+            for alter_sql in [
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT;",
+                "ALTER TABLE doctors ADD COLUMN IF NOT EXISTS photo_url TEXT;",
+                "ALTER TABLE medical_profiles ADD COLUMN IF NOT EXISTS photo_url TEXT;",
+                "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS doctor_id INTEGER;",
+                "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS actor_type VARCHAR(50) DEFAULT 'PATIENT';",
+                "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS actor_name VARCHAR(255);",
+                "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS organization VARCHAR(255);",
+                "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS reason TEXT;"
+            ]:
+                try:
+                    cursor.execute(alter_sql)
+                except Exception:
+                    pass
+
         else:
             # SQLite schema (exact backward-compatible implementation)
             cursor.execute("""
@@ -522,6 +539,7 @@ def init_db():
                     email TEXT UNIQUE NOT NULL,
                     phone TEXT,
                     password_hash TEXT NOT NULL,
+                    photo_url TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
@@ -538,6 +556,7 @@ def init_db():
                     current_medications TEXT,
                     previous_surgeries TEXT,
                     additional_notes TEXT,
+                    photo_url TEXT,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
                 );
@@ -559,6 +578,11 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS access_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id INTEGER NOT NULL,
+                    doctor_id INTEGER,
+                    actor_type TEXT DEFAULT 'PATIENT',
+                    actor_name TEXT,
+                    organization TEXT,
+                    reason TEXT,
                     access_type TEXT NOT NULL,
                     accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     ip_address TEXT,
@@ -594,6 +618,7 @@ def init_db():
                     hospital_or_clinic TEXT NOT NULL,
                     registration_number TEXT NOT NULL,
                     verification_status TEXT DEFAULT 'pending',
+                    photo_url TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
@@ -618,7 +643,22 @@ def init_db():
                 );
             """)
 
-            # Extend access_logs columns defensively if they do not exist
+            # Extend columns defensively for SQLite
+            cursor.execute("PRAGMA table_info(users);")
+            u_cols = [col[1] for col in cursor.fetchall()]
+            if 'photo_url' not in u_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN photo_url TEXT;")
+
+            cursor.execute("PRAGMA table_info(doctors);")
+            d_cols = [col[1] for col in cursor.fetchall()]
+            if 'photo_url' not in d_cols:
+                cursor.execute("ALTER TABLE doctors ADD COLUMN photo_url TEXT;")
+
+            cursor.execute("PRAGMA table_info(medical_profiles);")
+            mp_cols = [col[1] for col in cursor.fetchall()]
+            if 'photo_url' not in mp_cols:
+                cursor.execute("ALTER TABLE medical_profiles ADD COLUMN photo_url TEXT;")
+
             cursor.execute("PRAGMA table_info(access_logs);")
             access_cols = [col[1] for col in cursor.fetchall()]
             if 'doctor_id' not in access_cols:
@@ -648,6 +688,62 @@ def init_db():
         conn.commit()
     finally:
         conn.close()
+
+
+def safe_log_access(db, user_id, access_type, ip_address=None, actor_type='PATIENT', actor_name=None, organization=None, reason=None, doctor_id=None):
+    """
+    Defensively records an audit event to access_logs.
+    Swallows errors to prevent non-critical audit log failures from disrupting authentication or workflow.
+    """
+    try:
+        cursor = db.cursor()
+        cursor.execute(
+            """
+            INSERT INTO access_logs (user_id, access_type, ip_address, actor_type, actor_name, organization, reason, doctor_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, access_type, ip_address or '127.0.0.1', actor_type, actor_name, organization, reason, doctor_id)
+        )
+        db.commit()
+    except Exception as e:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        print(f"[SahayID Audit Log Notice] Access log warning (non-fatal): {e}")
+
+
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
+MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024  # 3MB
+
+def process_image_to_data_uri(file_obj_or_base64_str):
+    """
+    Validates and converts uploaded image or webcam base64 string to a safe data URI.
+    Ensures safe MIME format and size limits.
+    """
+    if not file_obj_or_base64_str:
+        return None
+
+    if isinstance(file_obj_or_base64_str, str) and file_obj_or_base64_str.startswith('data:image/'):
+        header, _, encoded = file_obj_or_base64_str.partition(',')
+        if len(encoded) > MAX_IMAGE_SIZE_BYTES * 1.4:
+            return None
+        return file_obj_or_base64_str
+
+    if hasattr(file_obj_or_base64_str, 'read'):
+        filename = getattr(file_obj_or_base64_str, 'filename', '') or ''
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpeg'
+        if ext not in ALLOWED_IMAGE_EXTENSIONS:
+            ext = 'jpeg'
+        file_bytes = file_obj_or_base64_str.read()
+        if not file_bytes or len(file_bytes) > MAX_IMAGE_SIZE_BYTES:
+            return None
+
+        mime = f"image/{ext}" if ext != 'jpg' else 'image/jpeg'
+        b64 = base64.b64encode(file_bytes).decode('utf-8')
+        return f"data:{mime};base64,{b64}"
+
+    return None
 
 
 # Lazy database initialization for serverless and WSGI environments
@@ -837,16 +933,9 @@ def login():
             session['full_name'] = user['full_name']
             session['role'] = 'patient'
 
-            # Record access log entry
+            # Record access log entry defensively
             client_ip = request.remote_addr or '127.0.0.1'
-            cursor.execute(
-                """
-                INSERT INTO access_logs (user_id, access_type, ip_address, actor_type, actor_name)
-                VALUES (?, 'LOGIN', ?, 'PATIENT', ?)
-                """,
-                (user['id'], client_ip, user['full_name'])
-            )
-            db.commit()
+            safe_log_access(db, user['id'], 'LOGIN', ip_address=client_ip, actor_type='PATIENT', actor_name=user['full_name'])
 
             flash(f"Welcome back, {user['full_name']}!", "success")
             return redirect(url_for('dashboard'))
@@ -1836,6 +1925,197 @@ def medical_profile():
     profile = cursor.fetchone()
 
     return render_template('medical_profile.html', profile=profile)
+
+
+@app.route('/profile/photo/upload', methods=['POST'])
+@login_required
+@patient_required
+def upload_patient_photo():
+    """
+    Upload or update patient profile photo.
+    Supports direct file upload or live camera base64 data URI.
+    """
+    user_id = session['user_id']
+    photo_data_uri = None
+
+    # Check for direct base64 capture (e.g. from webcam canvas)
+    raw_b64 = request.form.get('photo_base64')
+    if raw_b64 and raw_b64.startswith('data:image/'):
+        photo_data_uri = process_image_to_data_uri(raw_b64)
+
+    # Check for multipart file upload
+    if not photo_data_uri and 'photo_file' in request.files:
+        file = request.files['photo_file']
+        if file and file.filename:
+            photo_data_uri = process_image_to_data_uri(file)
+
+    if not photo_data_uri:
+        flash("Please choose a valid image file (PNG, JPG, WebP up to 3MB) or capture a photo.", "error")
+        return redirect(url_for('medical_profile'))
+
+    db = get_db()
+    try:
+        cursor = db.cursor()
+        cursor.execute("UPDATE users SET photo_url = ? WHERE id = ?", (photo_data_uri, user_id))
+        cursor.execute("UPDATE medical_profiles SET photo_url = ? WHERE user_id = ?", (photo_data_uri, user_id))
+        db.commit()
+        session['photo_url'] = photo_data_uri
+        flash("Profile photo updated successfully.", "success")
+    except Exception as e:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        print(f"[SahayID Photo Upload Warning] {e}")
+        flash("Failed to update profile photo. Please try again.", "error")
+
+    return redirect(url_for('medical_profile'))
+
+
+@app.route('/profile/photo/remove', methods=['POST'])
+@login_required
+@patient_required
+def remove_patient_photo():
+    """Remove patient profile photo."""
+    user_id = session['user_id']
+    db = get_db()
+    try:
+        cursor = db.cursor()
+        cursor.execute("UPDATE users SET photo_url = NULL WHERE id = ?", (user_id,))
+        cursor.execute("UPDATE medical_profiles SET photo_url = NULL WHERE user_id = ?", (user_id,))
+        db.commit()
+        session.pop('photo_url', None)
+        flash("Profile photo removed.", "info")
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        flash("Failed to remove profile photo.", "error")
+
+    return redirect(url_for('medical_profile'))
+
+
+@app.route('/doctor/profile', methods=['GET', 'POST'])
+@login_required
+@doctor_required
+def doctor_profile():
+    """
+    Doctor Profile Management.
+    GET: View doctor credentials and profile details.
+    POST: Update contact and practice details.
+    """
+    doctor_id = session['doctor_id']
+    db = get_db()
+    cursor = db.cursor()
+
+    if request.method == 'POST':
+        phone = request.form.get('phone', '').strip()
+        specialization = request.form.get('specialization', '').strip()
+        hospital_or_clinic = request.form.get('hospital_or_clinic', '').strip()
+
+        if not specialization or not hospital_or_clinic:
+            flash("Specialization and Hospital/Clinic fields are required.", "error")
+        else:
+            try:
+                cursor.execute(
+                    """
+                    UPDATE doctors
+                    SET phone = ?, specialization = ?, hospital_or_clinic = ?
+                    WHERE id = ?
+                    """,
+                    (phone, specialization, hospital_or_clinic, doctor_id)
+                )
+                db.commit()
+                session['phone'] = phone
+                session['specialization'] = specialization
+                session['hospital_or_clinic'] = hospital_or_clinic
+                flash("Doctor profile updated successfully.", "success")
+                return redirect(url_for('doctor_profile'))
+            except Exception:
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+                flash("Failed to update doctor profile.", "error")
+
+    cursor.execute("SELECT * FROM doctors WHERE id = ?", (doctor_id,))
+    doctor = cursor.fetchone()
+    if not doctor:
+        session.clear()
+        return redirect(url_for('doctor_login'))
+
+    return render_template('doctor_profile.html', doctor=doctor)
+
+
+@app.route('/doctor/profile/photo/upload', methods=['POST'])
+@login_required
+@doctor_required
+def upload_doctor_photo():
+    """
+    Upload or update doctor profile photo.
+    Supports direct file upload or live camera base64 data URI.
+    """
+    doctor_id = session['doctor_id']
+    photo_data_uri = None
+
+    raw_b64 = request.form.get('photo_base64')
+    if raw_b64 and raw_b64.startswith('data:image/'):
+        photo_data_uri = process_image_to_data_uri(raw_b64)
+
+    if not photo_data_uri and 'photo_file' in request.files:
+        file = request.files['photo_file']
+        if file and file.filename:
+            photo_data_uri = process_image_to_data_uri(file)
+
+    if not photo_data_uri:
+        flash("Please choose a valid image file (PNG, JPG, WebP up to 3MB) or capture a photo.", "error")
+        return redirect(url_for('doctor_profile'))
+
+    db = get_db()
+    try:
+        cursor = db.cursor()
+        cursor.execute("UPDATE doctors SET photo_url = ? WHERE id = ?", (photo_data_uri, doctor_id))
+        db.commit()
+        session['photo_url'] = photo_data_uri
+        flash("Doctor profile photo updated successfully.", "success")
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        flash("Failed to update doctor photo.", "error")
+
+    return redirect(url_for('doctor_profile'))
+
+
+@app.route('/doctor/profile/photo/remove', methods=['POST'])
+@login_required
+@doctor_required
+def remove_doctor_photo():
+    """Remove doctor profile photo."""
+    doctor_id = session['doctor_id']
+    db = get_db()
+    try:
+        cursor = db.cursor()
+        cursor.execute("UPDATE doctors SET photo_url = NULL WHERE id = ?", (doctor_id,))
+        db.commit()
+        session.pop('photo_url', None)
+        flash("Doctor profile photo removed.", "info")
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        flash("Failed to remove photo.", "error")
+
+    return redirect(url_for('doctor_profile'))
+
+
+@app.route('/faqs')
+def faqs():
+    """Dedicated Frequently Asked Questions (FAQs) Page."""
+    return render_template('faqs.html')
 
 
 @app.route('/emergency-contacts', methods=['GET', 'POST'])

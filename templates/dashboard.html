@@ -24,6 +24,7 @@
                     <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
                     <li><a href="{{ url_for('medical_profile') }}" class="nav-link">Medical Profile</a></li>
                     <li><a href="{{ url_for('emergency_contacts') }}" class="nav-link">Emergency Contacts</a></li>
+                    <li><a href="{{ url_for('faqs') }}" class="nav-link">FAQs</a></li>
                     <li><span class="status-badge badge-doctor">{{ user['full_name'] }}</span></li>
                     <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
                     <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
@@ -39,8 +40,17 @@
             <div>
                 <!-- Patient Identity Summary Card -->
                 <div class="sidebar-profile-card">
-                    <div class="sidebar-user-name">{{ user['full_name'] }}</div>
-                    <div class="sidebar-user-code">{{ user['medi_id'] }}</div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                        {% if profile and profile['photo_url'] %}
+                            <img src="{{ profile['photo_url'] }}" alt="{{ user['full_name'] }}" class="avatar-photo-sm">
+                        {% else %}
+                            <div class="avatar-photo-sm-placeholder">{{ user['full_name'][:1] }}</div>
+                        {% endif %}
+                        <div>
+                            <div class="sidebar-user-name">{{ user['full_name'] }}</div>
+                            <div class="sidebar-user-code">{{ user['medi_id'] }}</div>
+                        </div>
+                    </div>
                     <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
                         Blood Group: <strong>{{ profile['blood_group'] if profile and profile['blood_group'] else 'Unspecified' }}</strong>
                     </div>

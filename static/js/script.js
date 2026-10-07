@@ -39,7 +39,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 4. How SahayID Works - Animated Process Path & Progress Fill
+    // 4. FAQ Accordion Toggle Interaction
+    const faqButtons = document.querySelectorAll('.faq-question-btn');
+    faqButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const answerPane = btn.nextElementSibling;
+            const isOpen = btn.classList.contains('active');
+
+            // Close other open FAQ items in the same list
+            faqButtons.forEach(otherBtn => {
+                if (otherBtn !== btn) {
+                    otherBtn.classList.remove('active');
+                    otherBtn.setAttribute('aria-expanded', 'false');
+                    if (otherBtn.nextElementSibling) {
+                        otherBtn.nextElementSibling.classList.remove('open');
+                    }
+                }
+            });
+
+            if (isOpen) {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-expanded', 'false');
+                if (answerPane) answerPane.classList.remove('open');
+            } else {
+                btn.classList.add('active');
+                btn.setAttribute('aria-expanded', 'true');
+                if (answerPane) answerPane.classList.add('open');
+            }
+        });
+    });
+
+    // 5. How SahayID Works - Animated Process Path & Progress Fill
     const processContainer = document.querySelector('.process-flow-container');
     const processSteps = document.querySelectorAll('.process-step-node');
     const processTrackFill = document.getElementById('processTrackFill');
@@ -77,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTimeline();
     }
 
-    // 5. Doctor Access Request Live Status Polling
+    // 6. Doctor Access Request Live Status Polling
     const pendingPollElement = document.getElementById('pendingRequestTracker');
     if (pendingPollElement) {
         const pollUrl = pendingPollElement.dataset.pollUrl || window.location.href;
@@ -112,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
-    // 6. OTP Form Auto-Focus & Clean Input
+    // 7. OTP Form Auto-Focus & Clean Input
     const otpInput = document.getElementById('otpCodeInput');
     if (otpInput) {
         otpInput.focus();
@@ -122,7 +152,219 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 7. PWA Service Worker Registration & Subtle Install Prompt
+    // 8. Profile Photo Camera Snapshot Handler (Patient & Doctor)
+    const patientCameraBtn = document.getElementById('patientCameraBtn');
+    const doctorCameraBtn = document.getElementById('doctorCameraBtn');
+    const cameraModal = document.getElementById('cameraModal');
+    const cameraVideo = document.getElementById('cameraVideo');
+    const cameraCanvas = document.getElementById('cameraCanvas');
+    const snapPhotoBtn = document.getElementById('snapPhotoBtn');
+    const closeCameraModal = document.getElementById('closeCameraModal');
+    const cancelCameraBtn = document.getElementById('cancelCameraBtn');
+    const cameraSnapshotForm = document.getElementById('cameraSnapshotForm');
+    const cameraSnapshotBase64 = document.getElementById('cameraSnapshotBase64');
+    const cameraStatusMsg = document.getElementById('cameraStatusMsg');
+
+    let cameraStream = null;
+
+    const startCamera = async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('Camera access is not supported by your browser.');
+            return;
+        }
+
+        try {
+            if (cameraStatusMsg) cameraStatusMsg.textContent = 'Requesting camera access...';
+            cameraStream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+                audio: false
+            });
+            if (cameraVideo) {
+                cameraVideo.srcObject = cameraStream;
+                cameraVideo.play();
+            }
+            if (cameraModal) cameraModal.style.display = 'flex';
+            if (cameraStatusMsg) cameraStatusMsg.textContent = 'Position your face within the frame and click Capture.';
+        } catch (err) {
+            console.error('Camera access error:', err);
+            alert('Unable to access camera. Please ensure camera permissions are granted.');
+        }
+    };
+
+    const stopCamera = () => {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(t => t.stop());
+            cameraStream = null;
+        }
+        if (cameraVideo) cameraVideo.srcObject = null;
+        if (cameraModal) cameraModal.style.display = 'none';
+    };
+
+    if (patientCameraBtn) patientCameraBtn.addEventListener('click', startCamera);
+    if (doctorCameraBtn) doctorCameraBtn.addEventListener('click', startCamera);
+    if (closeCameraModal) closeCameraModal.addEventListener('click', stopCamera);
+    if (cancelCameraBtn) cancelCameraBtn.addEventListener('click', stopCamera);
+
+    if (snapPhotoBtn && cameraVideo && cameraCanvas && cameraSnapshotForm && cameraSnapshotBase64) {
+        snapPhotoBtn.addEventListener('click', () => {
+            const width = cameraVideo.videoWidth || 640;
+            const height = cameraVideo.videoHeight || 480;
+            cameraCanvas.width = width;
+            cameraCanvas.height = height;
+            const ctx = cameraCanvas.getContext('2d');
+            // Mirror image horizontally for intuitive selfie capture
+            ctx.translate(width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(cameraVideo, 0, 0, width, height);
+
+            const dataUri = cameraCanvas.toDataURL('image/jpeg', 0.85);
+            cameraSnapshotBase64.value = dataUri;
+            stopCamera();
+            cameraSnapshotForm.submit();
+        });
+    }
+
+    // 9. Doctor Camera QR Scanner Handler
+    const startQrScanBtn = document.getElementById('startQrScanBtn');
+    const qrScannerModal = document.getElementById('qrScannerModal');
+    const qrScannerVideo = document.getElementById('qrScannerVideo');
+    const qrScannerCanvas = document.getElementById('qrScannerCanvas');
+    const qrScannerStatus = document.getElementById('qrScannerStatus');
+    const closeQrScannerBtn = document.getElementById('closeQrScannerBtn');
+    const cancelQrScannerBtn = document.getElementById('cancelQrScannerBtn');
+    const flipCameraBtn = document.getElementById('flipCameraBtn');
+    const doctorSahayIdInput = document.getElementById('doctorSahayIdInput');
+    const doctorSearchForm = document.getElementById('doctorSearchForm');
+
+    let qrStream = null;
+    let qrScanAnimationId = null;
+    let currentFacingMode = 'environment';
+
+    const stopQrScanner = () => {
+        if (qrScanAnimationId) {
+            cancelAnimationFrame(qrScanAnimationId);
+            qrScanAnimationId = null;
+        }
+        if (qrStream) {
+            qrStream.getTracks().forEach(t => t.stop());
+            qrStream = null;
+        }
+        if (qrScannerVideo) qrScannerVideo.srcObject = null;
+        if (qrScannerModal) qrScannerModal.style.display = 'none';
+    };
+
+    const extractMediId = (text) => {
+        if (!text) return null;
+        // Check for direct SahayID format
+        const directMatch = text.match(/MED-[A-Z0-9]{4,16}/i);
+        if (directMatch) return directMatch[0].toUpperCase();
+
+        // Check for URL containing /emergency/MED-XXXXXXXX
+        if (text.includes('/emergency/')) {
+            const parts = text.split('/emergency/');
+            const candidate = parts[1].split(/[?#/]/)[0].trim().toUpperCase();
+            if (candidate.startsWith('MED-')) return candidate;
+        }
+        return null;
+    };
+
+    const scanQrFrame = async () => {
+        if (!qrScannerVideo || qrScannerVideo.readyState !== qrScannerVideo.HAVE_ENOUGH_DATA) {
+            qrScanAnimationId = requestAnimationFrame(scanQrFrame);
+            return;
+        }
+
+        const width = qrScannerVideo.videoWidth;
+        const height = qrScannerVideo.videoHeight;
+        if (qrScannerCanvas) {
+            qrScannerCanvas.width = width;
+            qrScannerCanvas.height = height;
+            const ctx = qrScannerCanvas.getContext('2d');
+            ctx.drawImage(qrScannerVideo, 0, 0, width, height);
+
+            // 1. Try native BarcodeDetector if available in browser
+            if ('BarcodeDetector' in window) {
+                try {
+                    const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                    const barcodes = await detector.detect(qrScannerCanvas);
+                    if (barcodes && barcodes.length > 0) {
+                        const rawValue = barcodes[0].rawValue;
+                        const mediId = extractMediId(rawValue);
+                        if (mediId) {
+                            handleQrScanned(mediId);
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    // Fall through
+                }
+            }
+        }
+
+        qrScanAnimationId = requestAnimationFrame(scanQrFrame);
+    };
+
+    const handleQrScanned = (mediId) => {
+        stopQrScanner();
+        if (doctorSahayIdInput) {
+            doctorSahayIdInput.value = mediId;
+        }
+        if (doctorSearchForm) {
+            doctorSearchForm.submit();
+        } else {
+            window.location.href = `/doctor/patient/search?sahay_id=${encodeURIComponent(mediId)}`;
+        }
+    };
+
+    const startQrScanner = async (facingMode = 'environment') => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('Camera scanner is not supported on this browser. Please enter the SahayID manually.');
+            return;
+        }
+
+        try {
+            if (qrScannerStatus) qrScannerStatus.textContent = 'Starting camera viewfinder...';
+            currentFacingMode = facingMode;
+            qrStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
+
+            if (qrScannerVideo) {
+                qrScannerVideo.srcObject = qrStream;
+                await qrScannerVideo.play();
+            }
+            if (qrScannerModal) qrScannerModal.style.display = 'flex';
+            if (qrScannerStatus) qrScannerStatus.textContent = 'Align patient QR badge within the square viewport.';
+            qrScanAnimationId = requestAnimationFrame(scanQrFrame);
+        } catch (err) {
+            console.error('QR camera error:', err);
+            // Fallback to default camera if environment camera fails
+            if (facingMode === 'environment') {
+                startQrScanner('user');
+            } else {
+                alert('Unable to access camera for scanning. Please check camera permissions.');
+            }
+        }
+    };
+
+    if (startQrScanBtn) {
+        startQrScanBtn.addEventListener('click', () => startQrScanner('environment'));
+    }
+    if (closeQrScannerBtn) closeQrScannerBtn.addEventListener('click', stopQrScanner);
+    if (cancelQrScannerBtn) cancelQrScannerBtn.addEventListener('click', stopQrScanner);
+
+    if (flipCameraBtn) {
+        flipCameraBtn.addEventListener('click', () => {
+            if (qrStream) {
+                qrStream.getTracks().forEach(t => t.stop());
+            }
+            const nextMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            startQrScanner(nextMode);
+        });
+    }
+
+    // 10. PWA Service Worker Registration & Subtle Install Prompt
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/static/sw.js').catch(() => {});

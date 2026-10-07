@@ -22,6 +22,7 @@
                     <li><a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a></li>
                     <li><a href="{{ url_for('medical_profile') }}" class="nav-link active">Medical Profile</a></li>
                     <li><a href="{{ url_for('emergency_contacts') }}" class="nav-link">Emergency Contacts</a></li>
+                    <li><a href="{{ url_for('faqs') }}" class="nav-link">FAQs</a></li>
                     <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
                     <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
                 </ul>
@@ -63,7 +64,44 @@
                     <span class="medi-id-chip">{{ session.get('medi_id') }}</span>
                 </div>
 
-                <div class="alert alert-info" style="margin-top: 1rem; margin-bottom: 1.5rem; background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.875rem;">
+                <!-- Profile Photo Management Section -->
+                <div style="background-color: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; margin-top: 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                    <div class="avatar-preview-wrap">
+                        {% if profile and profile['photo_url'] %}
+                            <img src="{{ profile['photo_url'] }}" alt="Profile Photo" class="avatar-photo-img" id="patientAvatarImg">
+                        {% else %}
+                            <div class="avatar-photo-placeholder" id="patientAvatarPlaceholder">
+                                {{ session.get('full_name', 'Patient')[:1] }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div style="flex: 1; min-width: 240px;">
+                        <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--navy-900); margin-bottom: 0.25rem;">Patient Portrait Photo</h3>
+                        <p style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                            JPG, PNG, or WebP up to 3MB. Used for visual clinical identification.
+                        </p>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <form action="{{ url_for('upload_patient_photo') }}" method="POST" enctype="multipart/form-data" id="patientPhotoForm" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                                <label class="btn btn-secondary btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    <span>Upload Photo</span>
+                                    <input type="file" name="photo_file" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                                </label>
+                            </form>
+                            <button type="button" class="btn btn-secondary btn-sm" id="patientCameraBtn" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                <span>Take Snapshot</span>
+                            </button>
+                            {% if profile and profile['photo_url'] %}
+                                <form action="{{ url_for('remove_patient_photo') }}" method="POST" style="display: inline-block;">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info" style="margin-bottom: 1.5rem; background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.875rem;">
                     <strong>Clinical Notice:</strong> Patient-provided information. Please keep updated. SahayID does not independently verify clinical data.
                 </div>
 
@@ -177,11 +215,41 @@
         </div>
     </main>
 
+    <!-- Camera Capture Modal -->
+    <div class="modal-backdrop" id="cameraModal" style="display: none;">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--navy-900);">Capture Profile Photo</h3>
+                <button type="button" class="modal-close-btn" id="closeCameraModal">&times;</button>
+            </div>
+            <div style="padding: 1.25rem; text-align: center;">
+                <div class="camera-stream-container">
+                    <video id="cameraVideo" autoplay playsinline muted style="width: 100%; border-radius: 8px; transform: scaleX(-1);"></video>
+                    <canvas id="cameraCanvas" style="display: none;"></canvas>
+                </div>
+                <div id="cameraStatusMsg" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    Position your face within the camera viewport.
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; padding: 1rem 1.25rem; border-top: 1px solid var(--border-subtle);">
+                <button type="button" class="btn btn-secondary" id="cancelCameraBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="snapPhotoBtn">Capture & Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden form for camera snapshot submission -->
+    <form action="{{ url_for('upload_patient_photo') }}" method="POST" id="cameraSnapshotForm" style="display: none;">
+        <input type="hidden" name="photo_base64" id="cameraSnapshotBase64">
+    </form>
+
     <!-- Footer -->
     <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-brand">SahayID © 2026</div>
-            <div class="footer-note">Confidential & Patient-Controlled Medical Identity</div>
+        <div class="footer-container">
+            <div class="footer-bottom">
+                <div>&copy; 2026 SahayID &bull; CRITICAL MEDICAL ACCESS</div>
+                <div>Confidential &bull; Patient-Controlled Medical Identity</div>
+            </div>
         </div>
     </footer>
 

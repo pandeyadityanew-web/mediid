@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frequently Asked Questions (FAQs) - SahayID</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+</head>
+<body>
+    <!-- Top Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="brand-logo-wrap">
+                <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
+                <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                <span class="brand-tag-inline">FAQ & Support</span>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
+            <nav>
+                <ul class="nav-menu" id="navMenu">
+                    <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                    <li><a href="{{ url_for('index') }}#about" class="nav-link">About</a></li>
+                    <li><a href="{{ url_for('index') }}#how-it-works" class="nav-link">How It Works</a></li>
+                    <li><a href="{{ url_for('faqs') }}" class="nav-link active">FAQs</a></li>
+                    {% if session.get('role') == 'doctor' %}
+                        <li><a href="{{ url_for('doctor_dashboard') }}" class="btn btn-primary nav-btn">Doctor Portal</a></li>
+                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
+                        <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                    {% elif session.get('role') == 'patient' %}
+                        <li><a href="{{ url_for('dashboard') }}" class="btn btn-primary nav-btn">Patient Portal</a></li>
+                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
+                        <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('login') }}" class="btn btn-secondary nav-btn">Patient Login</a></li>
+                        <li><a href="{{ url_for('doctor_login') }}" class="btn btn-secondary nav-btn" style="border-color: #0284c7; color: #0284c7;">Doctor Portal</a></li>
+                        <li><a href="{{ url_for('register') }}" class="btn btn-primary nav-btn">Get Started</a></li>
+                        <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-wrapper" style="max-width: 960px; margin: 2rem auto; padding: 0 1rem;">
+        <div style="text-align: center; margin-bottom: 2.5rem;">
+            <span class="status-badge badge-doctor" style="margin-bottom: 0.5rem;">Knowledge Base</span>
+            <h1 style="font-size: 2.25rem; font-weight: 800; color: var(--navy-900); margin-bottom: 0.75rem;">
+                Frequently Asked Questions
+            </h1>
+            <p style="color: var(--text-muted); font-size: 1.05rem; max-width: 650px; margin: 0 auto;">
+                Learn how SahayID safeguards your medical privacy, empowers doctor-patient clinical consent, and provides emergency break-glass triage.
+            </p>
+        </div>
+
+        <div class="faq-accordion-list">
+            <!-- FAQ 1 -->
+            <div class="faq-item">
+                <button class="faq-question-btn" aria-expanded="false">
+                    <span>What is SahayID and how does it protect my private medical data?</span>
+                    <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer-pane">
+                    <p>
+                        SahayID is a privacy-first digital healthcare identity infrastructure. Unlike static medical cards that print sensitive medical diagnoses directly in public view, SahayID issues a cryptographic identifier (<code>MED-XXXXXXXX</code>) and zero-knowledge QR routing badge.
+                    </p>
+                    <p style="margin-top: 0.5rem;">
+                        Your medical conditions, prescriptions, and surgical history are encrypted at rest and can only be unlocked with your explicit one-time passcode (OTP) or through an audited emergency break-glass protocol.
+                    </p>
+                </div>
+            </div>
+
+            <!-- FAQ 2 -->
+            <div class="faq-item">
+                <button class="faq-question-btn" aria-expanded="false">
+                    <span>How does the Doctor Consent + OTP verification system work?</span>
+                    <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer-pane">
+                    <p>
+                        When you visit a clinic or hospital, your doctor searches your SahayID Number or scans your QR code. This generates a secure consent request on your Patient Dashboard.
+                    </p>
+                    <p style="margin-top: 0.5rem;">
+                        When you approve the request, the platform produces a temporary 6-digit verification OTP (valid for 5 minutes). Once your doctor enters this code, they are granted read-only access to your clinical record for a 30-minute consultation window.
+                    </p>
+                </div>
+            </div>
+
+            <!-- FAQ 3 -->
+            <div class="faq-item">
+                <button class="faq-question-btn" aria-expanded="false">
+                    <span>What is Emergency Break-Glass Access and when is it used?</span>
+                    <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer-pane">
+                    <p>
+                        In acute, life-threatening crises where a patient is unconscious or unable to provide an OTP, emergency responders and trauma teams can initiate a monitored Break-Glass protocol.
+                    </p>
+                    <p style="margin-top: 0.5rem;">
+                        The responder must declare their identity, organization, and clinical justification. Break-Glass discloses strictly essential emergency triage data (blood group, life-threatening allergies, current medications, emergency contacts) for 10 minutes while keeping detailed consultation notes and surgical history shielded.
+                    </p>
+                </div>
+            </div>
+
+            <!-- FAQ 4 -->
+            <div class="faq-item">
+                <button class="faq-question-btn" aria-expanded="false">
+                    <span>Is my medical information stored inside the QR code?</span>
+                    <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer-pane">
+                    <p>
+                        <strong>No.</strong> The physical SahayID QR code encodes solely a secure gateway link (e.g. <code>https://sahayid.app/emergency/MED-XXXXXXXX</code>). If your wallet or badge is lost or photographed, no medical history, diagnoses, or personal identity details can be extracted from the image.
+                    </p>
+                </div>
+            </div>
+
+            <!-- FAQ 5 -->
+            <div class="faq-item">
+                <button class="faq-question-btn" aria-expanded="false">
+                    <span>Can I upload a profile photo and update my emergency contacts?</span>
+                    <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer-pane">
+                    <p>
+                        Yes. Through the Patient Portal, you can upload a portrait photo or use your device camera to capture a live snapshot. You can also add, edit, and delete emergency contacts (next-of-kin, guardians, primary physicians) at any time with immediate real-time synchronization.
+                    </p>
+                </div>
+            </div>
+
+            <!-- FAQ 6 -->
+            <div class="faq-item">
+                <button class="faq-question-btn" aria-expanded="false">
+                    <span>How are medical doctors and healthcare practitioners verified?</span>
+                    <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer-pane">
+                    <p>
+                        Doctors register with their medical registration number, clinical specialty, and affiliated hospital or practice. Clinical lookup privileges are restricted strictly to verified medical practitioners with active credentials.
+                    </p>
+                </div>
+            </div>
+
+            <!-- FAQ 7 -->
+            <div class="faq-item">
+                <button class="faq-question-btn" aria-expanded="false">
+                    <span>Can I see who has accessed my medical records?</span>
+                    <svg class="faq-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="faq-answer-pane">
+                    <p>
+                        Yes. Every login, doctor consultation request, consent approval, and emergency break-glass event is immutably logged with the accessor's identity, organization, stated medical reason, IP address, and timestamp in your Bilateral Audit Trail visible on your Patient Dashboard.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-card" style="margin-top: 3rem; padding: 2rem; text-align: center; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-color: #bae6fd;">
+            <h3 style="font-size: 1.35rem; font-weight: 700; color: var(--navy-900); margin-bottom: 0.5rem;">Ready to take control of your medical identity?</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem;">Create your secure SahayID account in less than 2 minutes.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('register') }}" class="btn btn-primary">Create Patient SahayID</a>
+                <a href="{{ url_for('doctor_register') }}" class="btn btn-secondary">Doctor Registration</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-bottom">
+                <div>&copy; 2026 SahayID &bull; Tagline: <strong>CRITICAL MEDICAL ACCESS</strong></div>
+                <div>Academic Prototype &bull; Clinical Governance & Emergency Identity</div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

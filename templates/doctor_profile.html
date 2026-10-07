@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Profile - SahayID</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+</head>
+<body>
+    <!-- Top Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('doctor_dashboard') }}" class="brand-logo-wrap">
+                <img src="{{ url_for('static', filename='images/sahayid-logo.jpg') }}" alt="SahayID - Critical Medical Access" class="brand-logo-img">
+                <span class="brand-name">Sahay<span class="brand-highlight">ID</span></span>
+                <span class="brand-tag-inline">Doctor Profile</span>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">☰</button>
+            <nav>
+                <ul class="nav-menu" id="navMenu">
+                    <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                    <li><a href="{{ url_for('doctor_dashboard') }}" class="nav-link">Doctor Portal</a></li>
+                    <li><a href="{{ url_for('doctor_profile') }}" class="nav-link active">My Profile</a></li>
+                    <li><a href="{{ url_for('faqs') }}" class="nav-link">FAQs</a></li>
+                    <li><button class="btn btn-secondary nav-btn pwa-install-btn" style="display:none;">Install App</button></li>
+                    <li><a href="{{ url_for('logout') }}" class="btn btn-secondary nav-btn">Sign Out</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Wrapper -->
+    <main class="main-wrapper" style="max-width: 800px; margin: 2rem auto; padding: 0 1rem;">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="auth-card" style="max-width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1.25rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h1 style="font-size: 1.65rem; font-weight: 800; color: var(--navy-900);">
+                        Physician Profile & Credentials
+                    </h1>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
+                        Manage your professional medical identity and clinical contact information.
+                    </p>
+                </div>
+                <div>
+                    {% if doctor['verification_status'] == 'verified' %}
+                        <span class="status-badge badge-verified">Verified Practitioner</span>
+                    {% elif doctor['verification_status'] == 'pending' %}
+                        <span class="status-badge badge-pending">Pending Verification</span>
+                    {% else %}
+                        <span class="status-badge badge-denied">{{ doctor['verification_status']|title }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Profile Photo Section -->
+            <div style="background-color: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                <div class="avatar-preview-wrap">
+                    {% if doctor['photo_url'] %}
+                        <img src="{{ doctor['photo_url'] }}" alt="Dr. {{ doctor['full_name'] }}" class="avatar-photo-img" id="doctorAvatarImg">
+                    {% else %}
+                        <div class="avatar-photo-placeholder" id="doctorAvatarPlaceholder">
+                            Dr. {{ doctor['full_name'][:1] }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div style="flex: 1; min-width: 240px;">
+                    <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--navy-900); margin-bottom: 0.25rem;">Practitioner Photo</h3>
+                    <p style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        JPG, PNG, or WebP format up to 3MB. Displayed on clinical access requests.
+                    </p>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <form action="{{ url_for('upload_doctor_photo') }}" method="POST" enctype="multipart/form-data" id="doctorPhotoForm" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                            <label class="btn btn-secondary btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <span>Upload Photo</span>
+                                <input type="file" name="photo_file" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                            </label>
+                        </form>
+                        <button type="button" class="btn btn-secondary btn-sm" id="doctorCameraBtn" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            <span>Take Snapshot</span>
+                        </button>
+                        {% if doctor['photo_url'] %}
+                            <form action="{{ url_for('remove_doctor_photo') }}" method="POST" style="display: inline-block;">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doctor Information Form -->
+            <form action="{{ url_for('doctor_profile') }}" method="POST">
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Doctor ID Number</label>
+                        <input type="text" class="form-input" value="{{ doctor['doctor_id'] }}" disabled style="background-color: var(--bg-subtle); font-family: var(--font-mono); font-weight: 700; color: var(--primary);">
+                        <span class="form-hint">Unique cryptographic practitioner identifier.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Medical Council Registration No.</label>
+                        <input type="text" class="form-input" value="{{ doctor['registration_number'] }}" disabled style="background-color: var(--bg-subtle); font-family: var(--font-mono); font-weight: 600;">
+                        <span class="form-hint">Locked for credential verification security.</span>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Practitioner Full Name</label>
+                        <input type="text" class="form-input" value="Dr. {{ doctor['full_name'] }}" disabled style="background-color: var(--bg-subtle);">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-input" value="{{ doctor['email'] }}" disabled style="background-color: var(--bg-subtle);">
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="specialization" class="form-label">Specialization / Department</label>
+                        <input type="text" id="specialization" name="specialization" class="form-input" value="{{ doctor['specialization'] }}" required>
+                        <span class="form-hint">e.g. Cardiology, Emergency Medicine, General Practice</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="hospital_or_clinic" class="form-label">Hospital / Medical Center / Clinic</label>
+                        <input type="text" id="hospital_or_clinic" name="hospital_or_clinic" class="form-input" value="{{ doctor['hospital_or_clinic'] }}" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone" class="form-label">Contact Phone Number</label>
+                    <input type="tel" id="phone" name="phone" class="form-input" value="{{ doctor['phone'] or '' }}" placeholder="+1-555-0199">
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1.25rem;">
+                    <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- Camera Capture Modal -->
+    <div class="modal-backdrop" id="cameraModal" style="display: none;">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--navy-900);">Capture Profile Photo</h3>
+                <button type="button" class="modal-close-btn" id="closeCameraModal">&times;</button>
+            </div>
+            <div style="padding: 1.25rem; text-align: center;">
+                <div class="camera-stream-container">
+                    <video id="cameraVideo" autoplay playsinline muted style="width: 100%; border-radius: 8px; transform: scaleX(-1);"></video>
+                    <canvas id="cameraCanvas" style="display: none;"></canvas>
+                </div>
+                <div id="cameraStatusMsg" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    Position your face within the camera viewport.
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; padding: 1rem 1.25rem; border-top: 1px solid var(--border-subtle);">
+                <button type="button" class="btn btn-secondary" id="cancelCameraBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="snapPhotoBtn">Capture & Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden form for camera snapshot submission -->
+    <form action="{{ url_for('upload_doctor_photo') }}" method="POST" id="cameraSnapshotForm" style="display: none;">
+        <input type="hidden" name="photo_base64" id="cameraSnapshotBase64">
+    </form>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-bottom">
+                <div>&copy; 2026 SahayID &bull; CRITICAL MEDICAL ACCESS</div>
+                <div>Authorized Practitioner Portal &bull; Medical Security Infrastructure</div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

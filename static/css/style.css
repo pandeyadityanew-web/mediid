@@ -1792,6 +1792,292 @@ html, body {
   }
 }
 
+/* ==========================================================================
+   FAQ Section & Accordion Styles
+   ========================================================================== */
+.faq-section {
+  padding: 3.5rem 1.5rem;
+  background-color: #ffffff;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.faq-accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faq-item {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: #ffffff;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.faq-item:hover {
+  border-color: var(--primary-border);
+}
+
+.faq-question-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.15rem 1.25rem;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy-900);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.faq-question-btn:hover {
+  color: var(--primary);
+  background-color: var(--bg-subtle);
+}
+
+.faq-question-btn.active {
+  color: var(--primary);
+  background-color: var(--primary-light);
+  border-bottom: 1px solid var(--primary-border);
+}
+
+.faq-chevron {
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.faq-question-btn.active .faq-chevron {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+.faq-answer-pane {
+  display: none;
+  padding: 1.15rem 1.25rem;
+  font-size: 0.925rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  background-color: #ffffff;
+}
+
+.faq-answer-pane.open {
+  display: block;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* ==========================================================================
+   Avatar & Profile Photo Styles
+   ========================================================================== */
+.avatar-preview-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #ffffff;
+  box-shadow: var(--shadow-sm);
+  background-color: var(--bg-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatar-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-photo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--navy-900) 100%);
+  color: #ffffff;
+  font-size: 1.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.avatar-photo-sm {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary-border);
+  flex-shrink: 0;
+}
+
+.avatar-photo-sm-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-outline-danger {
+  background-color: transparent;
+  color: var(--emergency);
+  border: 1px solid var(--emergency-border);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--emergency);
+  color: #ffffff;
+}
+
+.btn-emergency {
+  background-color: var(--emergency);
+  color: #ffffff;
+  border: 1px solid var(--emergency-hover);
+  font-weight: 700;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-emergency:hover {
+  background-color: var(--emergency-hover);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Modals & Camera / QR Scanner Viewport
+   ========================================================================== */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(12, 35, 64, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.modal-card {
+  background-color: #ffffff;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  border: 1px solid var(--border-subtle);
+  animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes modalScaleIn {
+  from {
+    transform: scale(0.94) translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.modal-close-btn:hover {
+  color: var(--navy-900);
+}
+
+.camera-stream-container {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+.qr-target-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.qr-target-box {
+  width: 180px;
+  height: 180px;
+  border: 2px solid var(--primary);
+  border-radius: 12px;
+  position: relative;
+  box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.4);
+}
+
+.qr-laser-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #38bdf8, #0284c7, transparent);
+  box-shadow: 0 0 8px #0284c7;
+  animation: qrLaserScan 2s infinite linear;
+}
+
+@keyframes qrLaserScan {
+  0% {
+    top: 0%;
+  }
+  50% {
+    top: 96%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+
 /* Print Optimization */
 @media print {
   .navbar, .footer, .dashboard-sidebar, .btn, .flash-messages, .pwa-install-btn {
