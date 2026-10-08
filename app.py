@@ -20,11 +20,27 @@ import qrcode
 app = Flask(__name__)
 
 # Application Configuration & Production Environment Settings
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sahayid-production-secret-key-default-2026')
+IS_PRODUCTION = bool(
+    os.environ.get('VERCEL')
+    or os.environ.get('VERCEL_ENV')
+    or os.environ.get('AWS_LAMBDA_FUNCTION_NAME')
+    or os.environ.get('FLASK_ENV') == 'production'
+    or os.environ.get('ENV') == 'production'
+    or os.environ.get('PRODUCTION') in ('1', 'true', 'True')
+)
+
+if IS_PRODUCTION:
+    secret_key = os.environ.get('SECRET_KEY')
+    if not secret_key:
+        raise RuntimeError("[SahayID Security Error] SECRET_KEY environment variable is mandatory in production.")
+    app.config['SECRET_KEY'] = secret_key
+else:
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sahayid-dev-secret-key-local-only-2026')
+
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
-if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('ENV') == 'production' or os.environ.get('SESSION_COOKIE_SECURE', '').lower() in ('true', '1'):
+if IS_PRODUCTION or os.environ.get('SESSION_COOKIE_SECURE', '').lower() in ('true', '1'):
     app.config['SESSION_COOKIE_SECURE'] = True
 
 try:
@@ -244,14 +260,92 @@ def is_timestamp_expired(expires_at, now_dt=None):
             return s < now_dt.strftime('%Y-%m-%d %H:%M:%S')
 
 
+# In-memory rate limiting store (prototype process-level sliding window)
+_rate_limit_store = {}
+
+def is_rate_limited(key, max_requests=20, window_seconds=60):
+    """
+    In-memory sliding window rate limiter per key.
+    Prototype store scoped per worker process.
+    """
+    try:
+        now = datetime.now(timezone.utc).timestamp()
+        timestamps = _rate_limit_store.get(key, [])
+        cutoff = now - window_seconds
+        valid_timestamps = [t for t in timestamps if t > cutoff]
+        if len(valid_timestamps) >= max_requests:
+            _rate_limit_store[key] = valid_timestamps
+            return True
+        valid_timestamps.append(now)
+        _rate_limit_store[key] = valid_timestamps
+        return False
+    except Exception:
+        return False
+
+
+def get_csrf_token():
+    """Generate or retrieve session CSRF token."""
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(32)
+    return session['csrf_token']
+
+
+@app.context_processor
+def inject_csrf_token():
+    """Inject csrf_token into all Jinja2 template contexts."""
+    return {'csrf_token': get_csrf_token()}
+
+
+@app.before_request
+def verify_csrf_token():
+    """Verify CSRF token on state-changing requests if enabled."""
+    if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
+        if app.config.get('TESTING') or not app.config.get('CSRF_ENABLED', True):
+            return
+        if request.path.startswith('/static') or request.path == '/favicon.ico':
+            return
+        token = request.form.get('csrf_token') or request.headers.get('X-CSRFToken') or request.headers.get('X-CSRF-Token')
+        expected = session.get('csrf_token')
+        if expected and token:
+            if not secrets.compare_digest(str(token), str(expected)):
+                flash("Security verification (CSRF) failed. Please try again.", "error")
+                return redirect(request.referrer or url_for('index'))
+
+
 def get_db_connection():
     """
     Establish and return a database connection.
-    Supports PostgreSQL when DATABASE_URL is configured (starts with postgres:// or postgresql://).
-    Gracefully falls back to SQLite in writable /tmp when on serverless environments if PostgreSQL
-    is unreachable, preventing serverless cold-start and runtime 500 crashes.
+    LOCAL: SQLite is used when DATABASE_URL is not set.
+    PRODUCTION/VERCEL: PostgreSQL is mandatory. If DATABASE_URL is missing or fails,
+    an explicit exception is logged and raised without silent fallback to /tmp SQLite.
     """
     db_url = os.environ.get('DATABASE_URL')
+
+    if IS_PRODUCTION:
+        if not db_url:
+            raise RuntimeError(
+                "[SahayID Production Error] DATABASE_URL environment variable is required in production/Vercel environments."
+            )
+        if not (db_url.startswith('postgres://') or db_url.startswith('postgresql://')):
+            raise RuntimeError(
+                "[SahayID Production Error] DATABASE_URL in production must be a PostgreSQL connection string."
+            )
+        try:
+            import psycopg2
+            import psycopg2.extras
+            if db_url.startswith('postgres://'):
+                db_url = 'postgresql://' + db_url[len('postgres://'):]
+            if 'sslmode=' not in db_url:
+                separator = '&' if '?' in db_url else '?'
+                db_url = f"{db_url}{separator}sslmode=require"
+            raw_conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.DictCursor, connect_timeout=10)
+            return PgConnectionWrapper(raw_conn)
+        except Exception as e:
+            masked_url = re.sub(r':([^:@]+)@', ':****@', db_url)
+            print(f"[SahayID Production Database Error] Failed to connect to PostgreSQL ({masked_url}): {e}")
+            raise RuntimeError(f"Database connection error: {e}") from e
+
+    # Non-production / Local development with DATABASE_URL configured:
     if db_url and (db_url.startswith('postgres://') or db_url.startswith('postgresql://')):
         try:
             import psycopg2
@@ -261,11 +355,14 @@ def get_db_connection():
             if 'sslmode=' not in db_url:
                 separator = '&' if '?' in db_url else '?'
                 db_url = f"{db_url}{separator}sslmode=require"
-            raw_conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.DictCursor, connect_timeout=8)
+            raw_conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.DictCursor, connect_timeout=10)
             return PgConnectionWrapper(raw_conn)
         except Exception as e:
-            print(f"[SahayID Warning] Could not connect to PostgreSQL ({e}). Falling back to local SQLite.")
+            masked_url = re.sub(r':([^:@]+)@', ':****@', db_url)
+            print(f"[SahayID Database Error] Local PostgreSQL connection failed ({masked_url}): {e}")
+            raise
 
+    # Local development SQLite
     try:
         os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
     except Exception:
@@ -595,6 +692,7 @@ def init_db():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_access_requests_doctor ON access_requests (doctor_id);")
 
             # Defensively update existing PostgreSQL tables if columns were added later
+            conn.commit()
             for alter_sql in [
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT;",
                 "ALTER TABLE doctors ADD COLUMN IF NOT EXISTS photo_url TEXT;",
@@ -606,13 +704,13 @@ def init_db():
                 "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS actor_type VARCHAR(50) DEFAULT 'PATIENT';",
                 "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS actor_name VARCHAR(255);",
                 "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS organization VARCHAR(255);",
-                "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS reason TEXT;",
-                "ALTER TABLE access_logs ALTER COLUMN user_id DROP NOT NULL;"
+                "ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS reason TEXT;"
             ]:
                 try:
                     cursor.execute(alter_sql)
+                    conn.commit()
                 except Exception:
-                    pass
+                    conn.rollback()
 
         else:
             # SQLite schema (exact backward-compatible implementation)
@@ -1005,6 +1103,11 @@ def register():
             return redirect(url_for('doctor_dashboard'))
 
     if request.method == 'POST':
+        client_ip = request.remote_addr or '127.0.0.1'
+        if is_rate_limited(f"register_{client_ip}", max_requests=12, window_seconds=60):
+            flash("Too many registration attempts. Please wait a moment and try again.", "error")
+            return render_template('register.html')
+
         full_name = request.form.get('full_name', '').strip()
         email = request.form.get('email', '').strip().lower()
         phone = request.form.get('phone', '').strip()
@@ -1032,7 +1135,7 @@ def register():
         try:
             # Check for existing email using parameterized query
             cursor = db.cursor()
-            cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+            cursor.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,))
             if cursor.fetchone():
                 flash("An account with this email address already exists. Please log in.", "error")
                 return render_template('register.html', full_name=full_name, email=email, phone=phone)
@@ -1053,9 +1156,11 @@ def register():
             )
             cursor.execute("SELECT id FROM users WHERE medi_id = ?", (medi_id,))
             u_row = cursor.fetchone()
-            user_id = u_row['id'] if u_row else cursor.lastrowid
+            if not u_row or not u_row['id']:
+                raise RuntimeError("Failed to retrieve generated user ID during registration.")
+            user_id = u_row['id']
 
-            # Create initial empty medical profile for the new user
+            # Create initial empty medical profile for the new user transactionally
             cursor.execute(
                 """
                 INSERT INTO medical_profiles (user_id)
@@ -1067,8 +1172,11 @@ def register():
             db.commit()
 
             # Automatically generate emergency QR code for new user
-            base_url = request.host_url.rstrip('/') if request else None
-            generate_medi_qr(medi_id, base_url)
+            try:
+                base_url = request.host_url.rstrip('/') if request else None
+                generate_medi_qr(medi_id, base_url)
+            except Exception as qr_err:
+                print(f"[SahayID QR Notice] Non-critical QR generation notice: {qr_err}")
 
             flash(
                 f"Registration successful! Your unique MediID is {medi_id}. You can now sign in.",
@@ -1102,6 +1210,11 @@ def login():
             return redirect(url_for('doctor_dashboard'))
 
     if request.method == 'POST':
+        client_ip = request.remote_addr or '127.0.0.1'
+        if is_rate_limited(f"login_{client_ip}", max_requests=15, window_seconds=60):
+            flash("Too many sign-in attempts. Please wait a moment before trying again.", "error")
+            return render_template('login.html')
+
         identifier = request.form.get('identifier', '').strip()
         password = request.form.get('password', '')
 
@@ -1117,7 +1230,7 @@ def login():
                 """
                 SELECT id, medi_id, full_name, email, password_hash
                 FROM users
-                WHERE email = ? OR UPPER(medi_id) = ?
+                WHERE LOWER(email) = LOWER(?) OR UPPER(medi_id) = UPPER(?)
                 """,
                 (identifier.lower(), identifier.upper())
             )
@@ -1128,7 +1241,7 @@ def login():
                 flash("Invalid email/MediID or password.", "error")
                 return render_template('login.html', identifier=identifier)
 
-            # Establish authenticated patient session
+            # Establish authenticated patient session with session rotation
             session.clear()
             session.permanent = True
             session['user_id'] = user['id']
@@ -1137,7 +1250,6 @@ def login():
             session['role'] = 'patient'
 
             # Record access log entry defensively
-            client_ip = request.remote_addr or '127.0.0.1'
             safe_log_access(db, user['id'], 'LOGIN', ip_address=client_ip, actor_type='PATIENT', actor_name=user['full_name'])
 
             flash(f"Welcome back, {user['full_name']}!", "success")
@@ -1193,7 +1305,7 @@ def doctor_login():
                 SELECT id, doctor_id, full_name, email, specialization, hospital_or_clinic,
                        registration_number, verification_status, password_hash
                 FROM doctors
-                WHERE email = ? OR UPPER(doctor_id) = ?
+                WHERE LOWER(email) = LOWER(?) OR UPPER(doctor_id) = UPPER(?)
                 """,
                 (identifier.lower(), identifier.upper())
             )
@@ -1275,7 +1387,7 @@ def doctor_register():
         db = get_db()
         try:
             cursor = db.cursor()
-            cursor.execute("SELECT id FROM doctors WHERE email = ?", (email,))
+            cursor.execute("SELECT id FROM doctors WHERE LOWER(email) = LOWER(?)", (email,))
             if cursor.fetchone():
                 flash("A doctor account with this email address already exists. Please sign in.", "error")
                 return render_template('doctor_register.html', full_name=full_name, email=email,
