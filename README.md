@@ -36,8 +36,24 @@ SahayID resolves this tension by providing:
    - **Emergency Break-Glass Gateway**: Intended for first responders and paramedics without account credentials; enforces emergency acknowledgement, identity disclosure, clinical reasoning, 10-minute ephemeral tokens, and strictly throttled access to critical lifesaving data only.
    - **Normal Authorized Doctor Access**: Intended for licensed, verified medical practitioners; enforces multi-field credentials, verification status checks, explicit access confirmation, and access to full clinical records.
 3. **Emergency Data Tiering**: Strict separation between critical triage data (blood group, life-threatening allergies, acute conditions, active medications, next-of-kin contacts) and full medical history (surgical history, psychiatric consultations, private physician notes).
-4. **Bilateral Audit Logging**: Immutable audit records in `access_logs` differentiating between `EMERGENCY_BREAK_GLASS` and `DOCTOR_ACCESS`.
-5. **Cloud & Production Ready**: Seamless deployment on ephemeral cloud hosts (Render, Railway, Heroku) via dynamic in-memory QR streaming, environment-based configuration, Gunicorn WSGI, and SQLite/PostgreSQL dual-database abstraction.
+4. **Admin Verification & Oversight Portal**: Secure administrative console (`/admin`) for evaluating medical licenses and managing physician verification status (`pending`, `verified`, `rejected`).
+5. **Bilateral Audit Logging**: Immutable audit records in `access_logs` differentiating between `EMERGENCY_BREAK_GLASS`, `DOCTOR_ACCESS`, and `CONSENT_OTP_ACCESS`.
+6. **Progressive Web App (PWA)**: Native install prompt support, offline asset caching, and mobile responsiveness.
+7. **Production Ready & Multi-Database**: Seamless deployment on Vercel and Supabase PostgreSQL with SSL pooling.
+
+---
+
+## 📚 Technical Documentation Index
+
+For in-depth architectural and operational guides, explore the [`/docs`](/docs) directory:
+
+- 🏛️ **[System Architecture](docs/ARCHITECTURE.md)**: Role-based access control, topology, and database entity relationships.
+- 🔒 **[Security & API Specification](docs/SECURITY_AND_API.md)**: Cryptographic hashing, OTP consent engine, HTTP defensive headers, and endpoints.
+- 👨‍⚕️ **[Administrator & Doctor Verification Guide](docs/ADMIN_GUIDE.md)**: Practitioner onboarding, license validation, and audit controls.
+- 🚨 **[Emergency Triage & Break-Glass Protocol](docs/EMERGENCY_TRIAGE.md)**: Zero-knowledge QR mechanics, ephemeral token lifecycle, and triage data gating.
+- 📱 **[Progressive Web App (PWA) Guide](docs/PWA_GUIDE.md)**: Native installation mechanics, Web Manifest, and service worker strategies.
+- 🚀 **[Production Deployment Guide](docs/DEPLOYMENT.md)**: Supabase PostgreSQL setup, environment variables, and Vercel configuration.
+- 💡 **[Platform FAQs & Knowledge Base](docs/FAQ.md)**: Frequently asked questions and privacy guarantees.
 
 ---
 
