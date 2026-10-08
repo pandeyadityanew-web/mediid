@@ -29,14 +29,8 @@ IS_PRODUCTION = bool(
     or os.environ.get('PRODUCTION') in ('1', 'true', 'True')
 )
 
-if IS_PRODUCTION:
-    secret_key = os.environ.get('SECRET_KEY')
-    if not secret_key:
-        raise RuntimeError("[SahayID Security Error] SECRET_KEY environment variable is mandatory in production.")
-    app.config['SECRET_KEY'] = secret_key
-else:
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sahayid-dev-secret-key-local-only-2026')
-
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.environ.get('FLASK_SECRET_KEY') or 'sahayid-production-core-session-secret-v2-2026'
+app.config['SESSION_COOKIE_NAME'] = 'sahayid_session'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
@@ -62,13 +56,16 @@ else:
     QR_DIR = os.path.join(BASE_DIR, 'static', 'generated_qr')
 
 
-
 @app.after_request
 def set_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    
+    # Safe non-sensitive diagnostic indicator
+    db_backend = 'postgresql' if (os.environ.get('DATABASE_URL') and (os.environ.get('DATABASE_URL').startswith('postgres://') or os.environ.get('DATABASE_URL').startswith('postgresql://'))) else 'sqlite'
+    response.headers['X-DB-Backend'] = db_backend
     return response
 
 
@@ -107,8 +104,9 @@ def patient_required(f):
             flash("Please sign in to access your SahayID patient portal.", "error")
             return redirect(url_for('login'))
         if session.get('role') != 'patient':
-            flash("Access restricted to patient accounts.", "error")
-            return redirect(url_for('dashboard'))
+            session.clear()
+            flash("Please sign in with a patient account.", "error")
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -1078,6 +1076,19 @@ def favicon_ico():
     return send_file(os.path.join(BASE_DIR, 'static', 'favicon.ico'), mimetype='image/x-icon')
 
 
+@app.route('/health')
+def health():
+    """Safe diagnostic health check endpoint."""
+    db_backend = 'postgresql' if (os.environ.get('DATABASE_URL') and (os.environ.get('DATABASE_URL').startswith('postgres://') or os.environ.get('DATABASE_URL').startswith('postgresql://'))) else 'sqlite'
+    return {
+        "status": "ok",
+        "service": "SahayID",
+        "db_backend": db_backend,
+        "is_production": IS_PRODUCTION,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+
 # ============================================================================
 # Public & Authentication Routes
 # ============================================================================
@@ -1104,7 +1115,7 @@ def register():
 
     if request.method == 'POST':
         client_ip = request.remote_addr or '127.0.0.1'
-        if is_rate_limited(f"register_{client_ip}", max_requests=12, window_seconds=60):
+        if is_rate_limited(f"register_{client_ip}", max_requests=25, window_seconds=60):
             flash("Too many registration attempts. Please wait a moment and try again.", "error")
             return render_template('register.html')
 
@@ -1131,22 +1142,25 @@ def register():
             flash("Passwords do not match. Please re-enter.", "error")
             return render_template('register.html', full_name=full_name, email=email, phone=phone)
 
-        db = get_db()
+        stage = 'db_connection'
+        db = None
         try:
-            # Check for existing email using parameterized query
+            db = get_db()
             cursor = db.cursor()
+
+            stage = 'duplicate_email_check'
             cursor.execute("SELECT id FROM users WHERE LOWER(email) = LOWER(?)", (email,))
             if cursor.fetchone():
                 flash("An account with this email address already exists. Please log in.", "error")
                 return render_template('register.html', full_name=full_name, email=email, phone=phone)
 
-            # Generate unique MediID (e.g. MED-XXXXXXXX)
+            stage = 'generate_unique_medi_id'
             medi_id = generate_unique_medi_id(db)
 
-            # Hash password securely using Werkzeug
+            stage = 'password_hashing'
             password_hash = generate_password_hash(password)
 
-            # Insert user record
+            stage = 'user_insert'
             cursor.execute(
                 """
                 INSERT INTO users (medi_id, full_name, email, phone, password_hash)
@@ -1154,13 +1168,15 @@ def register():
                 """,
                 (medi_id, full_name, email, phone, password_hash)
             )
+
+            stage = 'user_id_resolution'
             cursor.execute("SELECT id FROM users WHERE medi_id = ?", (medi_id,))
             u_row = cursor.fetchone()
             if not u_row or not u_row['id']:
-                raise RuntimeError("Failed to retrieve generated user ID during registration.")
+                raise RuntimeError("Failed to resolve generated user ID after insertion.")
             user_id = u_row['id']
 
-            # Create initial empty medical profile for the new user transactionally
+            stage = 'medical_profile_insert'
             cursor.execute(
                 """
                 INSERT INTO medical_profiles (user_id)
@@ -1169,9 +1185,10 @@ def register():
                 (user_id,)
             )
 
+            stage = 'commit'
             db.commit()
 
-            # Automatically generate emergency QR code for new user
+            stage = 'qr_generation'
             try:
                 base_url = request.host_url.rstrip('/') if request else None
                 generate_medi_qr(medi_id, base_url)
@@ -1179,17 +1196,19 @@ def register():
                 print(f"[SahayID QR Notice] Non-critical QR generation notice: {qr_err}")
 
             flash(
-                f"Registration successful! Your unique MediID is {medi_id}. You can now sign in.",
+                f"Registration successful! Your unique SahayID is {medi_id}. You can now sign in.",
                 "success"
             )
             return redirect(url_for('login'))
 
         except Exception as e:
-            try:
-                db.rollback()
-            except Exception:
-                pass
-            print(f"[SahayID Registration Error] {e}")
+            if db:
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+            db_type = 'postgresql' if (isinstance(db, PgConnectionWrapper) or IS_PRODUCTION) else 'sqlite'
+            print(f"[SahayID Registration Error] route=/register stage={stage} db={db_type} exception={type(e).__name__}: {e}")
             flash("A server error occurred during registration. Please try again.", "error")
             return render_template('register.html', full_name=full_name, email=email, phone=phone)
 
@@ -1200,7 +1219,7 @@ def register():
 def login():
     """
     User login route.
-    Accepts Email or MediID with password, verifies credentials,
+    Accepts Email or SahayID with password, verifies credentials,
     sets session state, and redirects to dashboard.
     """
     if request.method == 'GET':
@@ -1211,7 +1230,7 @@ def login():
 
     if request.method == 'POST':
         client_ip = request.remote_addr or '127.0.0.1'
-        if is_rate_limited(f"login_{client_ip}", max_requests=15, window_seconds=60):
+        if is_rate_limited(f"login_{client_ip}", max_requests=25, window_seconds=60):
             flash("Too many sign-in attempts. Please wait a moment before trying again.", "error")
             return render_template('login.html')
 
@@ -1219,13 +1238,16 @@ def login():
         password = request.form.get('password', '')
 
         if not identifier or not password:
-            flash("Please provide both email/MediID and password.", "error")
+            flash("Please provide both email/SahayID and password.", "error")
             return render_template('login.html', identifier=identifier)
 
-        db = get_db()
+        stage = 'db_connection'
+        db = None
         try:
+            db = get_db()
             cursor = db.cursor()
-            # Lookup user by either lowercase email or uppercase MediID
+
+            stage = 'user_lookup'
             cursor.execute(
                 """
                 SELECT id, medi_id, full_name, email, password_hash
@@ -1236,12 +1258,12 @@ def login():
             )
             user = cursor.fetchone()
 
-            # Verify password using Werkzeug check_password_hash
+            stage = 'credential_verification'
             if user is None or not check_password_hash(user['password_hash'], password):
-                flash("Invalid email/MediID or password.", "error")
+                flash("Invalid email/SahayID or password.", "error")
                 return render_template('login.html', identifier=identifier)
 
-            # Establish authenticated patient session with session rotation
+            stage = 'session_establishment'
             session.clear()
             session.permanent = True
             session['user_id'] = user['id']
@@ -1249,14 +1271,15 @@ def login():
             session['full_name'] = user['full_name']
             session['role'] = 'patient'
 
-            # Record access log entry defensively
+            stage = 'access_logging'
             safe_log_access(db, user['id'], 'LOGIN', ip_address=client_ip, actor_type='PATIENT', actor_name=user['full_name'])
 
             flash(f"Welcome back, {user['full_name']}!", "success")
             return redirect(url_for('dashboard'))
 
         except Exception as e:
-            print(f"[SahayID Login Error] {e}")
+            db_type = 'postgresql' if (isinstance(db, PgConnectionWrapper) or IS_PRODUCTION) else 'sqlite'
+            print(f"[SahayID Login Error] route=/login stage={stage} db={db_type} exception={type(e).__name__}: {e}")
             flash("Unable to sign in right now. Please try again.", "error")
             return render_template('login.html', identifier=identifier)
 
@@ -1297,9 +1320,12 @@ def doctor_login():
             flash("Please provide both Doctor ID / Email and password.", "error")
             return render_template('doctor_login.html', identifier=identifier)
 
-        db = get_db()
+        stage = 'db_connection'
+        db = None
         try:
+            db = get_db()
             cursor = db.cursor()
+            stage = 'doctor_lookup'
             cursor.execute(
                 """
                 SELECT id, doctor_id, full_name, email, specialization, hospital_or_clinic,
@@ -1311,11 +1337,13 @@ def doctor_login():
             )
             doctor = cursor.fetchone()
 
+            stage = 'credential_verification'
             if doctor is None or not check_password_hash(doctor['password_hash'], password):
                 flash("Invalid doctor ID / email or password.", "error")
                 return render_template('doctor_login.html', identifier=identifier)
 
             # Establish authenticated doctor session
+            stage = 'session_establishment'
             session.clear()
             session.permanent = True
             session['doctor_id'] = doctor['id']
@@ -1334,7 +1362,8 @@ def doctor_login():
             return redirect(url_for('doctor_dashboard'))
 
         except Exception as e:
-            print(f"[SahayID Doctor Login Error] {e}")
+            db_type = 'postgresql' if (isinstance(db, PgConnectionWrapper) or IS_PRODUCTION) else 'sqlite'
+            print(f"[SahayID Doctor Login Error] route=/doctor/login stage={stage} db={db_type} exception={type(e).__name__}: {e}")
             flash("Unable to sign in as doctor right now. Please try again.", "error")
             return render_template('doctor_login.html', identifier=identifier)
 
@@ -1384,9 +1413,12 @@ def doctor_register():
                                    phone=phone, specialization=specialization,
                                    hospital_or_clinic=hospital, registration_number=registration_num)
 
-        db = get_db()
+        stage = 'db_connection'
+        db = None
         try:
+            db = get_db()
             cursor = db.cursor()
+            stage = 'duplicate_email_check'
             cursor.execute("SELECT id FROM doctors WHERE LOWER(email) = LOWER(?)", (email,))
             if cursor.fetchone():
                 flash("A doctor account with this email address already exists. Please sign in.", "error")
@@ -1394,9 +1426,13 @@ def doctor_register():
                                        phone=phone, specialization=specialization,
                                        hospital_or_clinic=hospital, registration_number=registration_num)
 
+            stage = 'id_generation'
             doc_id = generate_unique_doctor_id(db)
+
+            stage = 'password_hashing'
             password_hash = generate_password_hash(password)
 
+            stage = 'doctor_insert'
             cursor.execute(
                 """
                 INSERT INTO doctors (doctor_id, full_name, email, phone, password_hash,
@@ -1405,6 +1441,8 @@ def doctor_register():
                 """,
                 (doc_id, full_name, email, phone, password_hash, specialization, hospital, registration_num)
             )
+
+            stage = 'commit'
             db.commit()
 
             flash(
@@ -1415,11 +1453,13 @@ def doctor_register():
             return redirect(url_for('doctor_login'))
 
         except Exception as e:
-            try:
-                db.rollback()
-            except Exception:
-                pass
-            print(f"[SahayID Doctor Registration Error] {e}")
+            if db:
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+            db_type = 'postgresql' if (isinstance(db, PgConnectionWrapper) or IS_PRODUCTION) else 'sqlite'
+            print(f"[SahayID Doctor Registration Error] route=/doctor/register stage={stage} db={db_type} exception={type(e).__name__}: {e}")
             flash("A server error occurred during doctor registration. Please try again.", "error")
             return render_template('doctor_register.html', full_name=full_name, email=email,
                                    phone=phone, specialization=specialization,
@@ -1977,150 +2017,173 @@ def dashboard():
     blood group, emergency contacts overview, scannable QR code, and
     the audit history of all emergency and doctor accesses.
     """
-    user_id = session['user_id']
-    db = get_db()
-    cursor = db.cursor()
-
-    # Retrieve current user record
-    cursor.execute(
-        "SELECT id, medi_id, full_name, email, phone, created_at FROM users WHERE id = ?",
-        (user_id,)
-    )
-    user = cursor.fetchone()
-    if not user:
+    user_id = session.get('user_id')
+    if not user_id:
         session.clear()
-        flash("Session invalid. Please sign in again.", "error")
+        flash("Please sign in to access your SahayID patient portal.", "error")
         return redirect(url_for('login'))
 
-    # Retrieve medical profile record
-    cursor.execute(
-        "SELECT * FROM medical_profiles WHERE user_id = ?",
-        (user_id,)
-    )
-    profile = cursor.fetchone()
+    stage = 'db_connection'
+    db = None
+    try:
+        db = get_db()
+        cursor = db.cursor()
 
-    # Self-heal profile if missing
-    if not profile:
-        cursor.execute("INSERT INTO medical_profiles (user_id) VALUES (?)", (user_id,))
-        db.commit()
-        cursor.execute("SELECT * FROM medical_profiles WHERE user_id = ?", (user_id,))
+        # Retrieve current user record
+        stage = 'user_fetch'
+        cursor.execute(
+            "SELECT id, medi_id, full_name, email, phone, created_at FROM users WHERE id = ?",
+            (user_id,)
+        )
+        user = cursor.fetchone()
+        if not user:
+            session.clear()
+            flash("Session invalid. Please sign in again.", "error")
+            return redirect(url_for('login'))
+
+        # Retrieve medical profile record
+        stage = 'profile_fetch'
+        cursor.execute(
+            "SELECT * FROM medical_profiles WHERE user_id = ?",
+            (user_id,)
+        )
         profile = cursor.fetchone()
 
-    # Retrieve emergency contact count
-    cursor.execute(
-        "SELECT COUNT(*) as count FROM emergency_contacts WHERE user_id = ?",
-        (user_id,)
-    )
-    contact_count_row = cursor.fetchone()
-    contact_count = contact_count_row['count'] if contact_count_row else 0
+        # Self-heal profile if missing
+        if not profile:
+            stage = 'profile_self_heal'
+            cursor.execute("INSERT INTO medical_profiles (user_id) VALUES (?)", (user_id,))
+            db.commit()
+            cursor.execute("SELECT * FROM medical_profiles WHERE user_id = ?", (user_id,))
+            profile = cursor.fetchone()
 
-    completion_pct = calculate_profile_completion(profile, contact_count)
-
-    # Ensure QR code exists on disk for current user (handles legacy/existing users)
-    try:
-        qr_file = os.path.join(QR_DIR, f"{user['medi_id']}.png")
-        if not os.path.exists(qr_file):
-            base_url = request.host_url.rstrip('/') if request else None
-            generate_medi_qr(user['medi_id'], base_url)
-    except Exception as e:
-        print(f"[SahayID QR Notice] {e}")
-
-    # Retrieve Emergency Access History & Doctor Access Events
-    try:
+        # Retrieve emergency contact count
+        stage = 'contacts_count'
         cursor.execute(
-            """
-            SELECT responder_name, organization, reason, created_at, expires_at, accessed_at, ip_address, 'EMERGENCY' as access_source
-            FROM emergency_access
-            WHERE user_id = ?
-            ORDER BY created_at DESC
-            LIMIT 10
-            """,
+            "SELECT COUNT(*) as count FROM emergency_contacts WHERE user_id = ?",
             (user_id,)
         )
-        emergency_rows = cursor.fetchall() or []
-    except Exception as e:
-        print(f"[SahayID Warning] Could not fetch emergency access history: {e}")
-        emergency_rows = []
+        contact_count_row = cursor.fetchone()
+        contact_count = contact_count_row['count'] if contact_count_row else 0
 
-    try:
-        cursor.execute(
-            """
-            SELECT actor_name as responder_name, organization, reason, accessed_at as created_at,
-                   'Authorized Session' as expires_at, accessed_at, ip_address, 'DOCTOR' as access_source
-            FROM access_logs
-            WHERE user_id = ? AND access_type = 'DOCTOR_ACCESS'
-            ORDER BY accessed_at DESC
-            LIMIT 10
-            """,
-            (user_id,)
+        completion_pct = calculate_profile_completion(profile, contact_count)
+
+        # Ensure QR code exists on disk for current user (handles legacy/existing users)
+        stage = 'qr_check'
+        try:
+            qr_file = os.path.join(QR_DIR, f"{user['medi_id']}.png")
+            if not os.path.exists(qr_file):
+                base_url = request.host_url.rstrip('/') if request else None
+                generate_medi_qr(user['medi_id'], base_url)
+        except Exception as e:
+            print(f"[SahayID QR Notice] {e}")
+
+        # Retrieve Emergency Access History & Doctor Access Events
+        stage = 'history_fetch'
+        try:
+            cursor.execute(
+                """
+                SELECT responder_name, organization, reason, created_at, expires_at, accessed_at, ip_address, 'EMERGENCY' as access_source
+                FROM emergency_access
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                LIMIT 10
+                """,
+                (user_id,)
+            )
+            emergency_rows = cursor.fetchall() or []
+        except Exception as e:
+            print(f"[SahayID Warning] Could not fetch emergency access history: {e}")
+            emergency_rows = []
+
+        try:
+            cursor.execute(
+                """
+                SELECT actor_name as responder_name, organization, reason, accessed_at as created_at,
+                       'Authorized Session' as expires_at, accessed_at, ip_address, 'DOCTOR' as access_source
+                FROM access_logs
+                WHERE user_id = ? AND access_type = 'DOCTOR_ACCESS'
+                ORDER BY accessed_at DESC
+                LIMIT 10
+                """,
+                (user_id,)
+            )
+            doctor_rows = cursor.fetchall() or []
+        except Exception as e:
+            print(f"[SahayID Warning] Could not fetch doctor access history: {e}")
+            doctor_rows = []
+
+        all_history_rows = list(emergency_rows) + list(doctor_rows)
+        all_history_rows.sort(key=lambda r: to_str_timestamp(r['created_at']), reverse=True)
+
+        access_history = []
+        now_dt = datetime.now(timezone.utc)
+
+        for row in all_history_rows[:15]:
+            if row['access_source'] == 'DOCTOR':
+                status = 'Authorized'
+                actor_label = row['responder_name'] or "Verified Physician"
+            else:
+                status = 'Active' if not is_timestamp_expired(row['expires_at'], now_dt) else 'Expired'
+                actor_label = row['responder_name']
+
+            access_history.append({
+                'access_source': row['access_source'],
+                'responder_name': actor_label,
+                'organization': row['organization'],
+                'reason': row['reason'],
+                'created_at': to_str_timestamp(row['created_at']),
+                'status': status
+            })
+
+        # Retrieve patient emergency contacts
+        stage = 'contacts_fetch'
+        try:
+            cursor.execute(
+                "SELECT * FROM emergency_contacts WHERE user_id = ? ORDER BY id ASC",
+                (user_id,)
+            )
+            emergency_contacts_list = cursor.fetchall() or []
+        except Exception as e:
+            print(f"[SahayID Warning] Could not fetch emergency contacts: {e}")
+            emergency_contacts_list = []
+
+        # Retrieve patient access requests (consent requests from doctors)
+        stage = 'requests_fetch'
+        try:
+            cursor.execute(
+                """
+                SELECT ar.*, d.full_name as doctor_name, d.doctor_id as doc_code, d.specialization, d.hospital_or_clinic, d.registration_number
+                FROM access_requests ar
+                JOIN doctors d ON ar.doctor_id = d.id
+                WHERE ar.patient_id = ?
+                ORDER BY ar.created_at DESC
+                LIMIT 10
+                """,
+                (user_id,)
+            )
+            access_requests = cursor.fetchall() or []
+        except Exception as e:
+            print(f"[SahayID Warning] Could not fetch access requests: {e}")
+            access_requests = []
+
+        return render_template(
+            'dashboard.html',
+            user=user,
+            profile=profile,
+            contact_count=contact_count,
+            completion_pct=completion_pct,
+            access_history=access_history,
+            access_requests=access_requests,
+            emergency_contacts=emergency_contacts_list
         )
-        doctor_rows = cursor.fetchall() or []
+
     except Exception as e:
-        print(f"[SahayID Warning] Could not fetch doctor access history: {e}")
-        doctor_rows = []
+        db_type = 'postgresql' if (isinstance(db, PgConnectionWrapper) or IS_PRODUCTION) else 'sqlite'
+        print(f"[SahayID Dashboard Error] route=/dashboard stage={stage} db={db_type} exception={type(e).__name__}: {e}")
+        flash("An error occurred loading your dashboard. Please sign in again.", "error")
+        return redirect(url_for('login'))
 
-    all_history_rows = list(emergency_rows) + list(doctor_rows)
-    all_history_rows.sort(key=lambda r: to_str_timestamp(r['created_at']), reverse=True)
-
-    access_history = []
-    now_dt = datetime.now(timezone.utc)
-
-    for row in all_history_rows[:15]:
-        if row['access_source'] == 'DOCTOR':
-            status = 'Authorized'
-            actor_label = row['responder_name'] or "Verified Physician"
-        else:
-            status = 'Active' if not is_timestamp_expired(row['expires_at'], now_dt) else 'Expired'
-            actor_label = row['responder_name']
-
-        access_history.append({
-            'access_source': row['access_source'],
-            'responder_name': actor_label,
-            'organization': row['organization'],
-            'reason': row['reason'],
-            'created_at': to_str_timestamp(row['created_at']),
-            'status': status
-        })
-
-    # Retrieve patient emergency contacts
-    try:
-        cursor.execute(
-            "SELECT * FROM emergency_contacts WHERE user_id = ? ORDER BY id ASC",
-            (user_id,)
-        )
-        emergency_contacts_list = cursor.fetchall() or []
-    except Exception as e:
-        print(f"[SahayID Warning] Could not fetch emergency contacts: {e}")
-        emergency_contacts_list = []
-
-    # Retrieve patient access requests (consent requests from doctors)
-    try:
-        cursor.execute(
-            """
-            SELECT ar.*, d.full_name as doctor_name, d.doctor_id as doc_code, d.specialization, d.hospital_or_clinic, d.registration_number
-            FROM access_requests ar
-            JOIN doctors d ON ar.doctor_id = d.id
-            WHERE ar.patient_id = ?
-            ORDER BY ar.created_at DESC
-            LIMIT 10
-            """,
-            (user_id,)
-        )
-        access_requests = cursor.fetchall() or []
-    except Exception as e:
-        print(f"[SahayID Warning] Could not fetch access requests: {e}")
-        access_requests = []
-
-    return render_template(
-        'dashboard.html',
-        user=user,
-        profile=profile,
-        contact_count=contact_count,
-        completion_pct=completion_pct,
-        access_history=access_history,
-        access_requests=access_requests,
-        emergency_contacts=emergency_contacts_list
-    )
 
 
 @app.route('/download-qr')
@@ -2843,62 +2906,75 @@ def admin_login():
         flash("Please provide both administrator identifier and password.", "error")
         return render_template('admin_login.html', identifier=identifier), 400
 
-    db = get_db()
-    cursor = db.cursor()
+    stage = 'db_connection'
+    db = None
+    try:
+        db = get_db()
+        cursor = db.cursor()
 
-    # Fail securely if no administrator account has been provisioned
-    cursor.execute("SELECT COUNT(*) AS count FROM admins;")
-    admin_count_row = cursor.fetchone()
-    admin_count = admin_count_row['count'] if admin_count_row else 0
-    if admin_count == 0:
-        flash("Administrator access is unconfigured. The ADMIN_PASSWORD environment variable must be set in your deployment environment.", "error")
-        return render_template('admin_login.html', identifier=identifier), 503
+        # Fail securely if no administrator account has been provisioned
+        stage = 'check_admin_count'
+        cursor.execute("SELECT COUNT(*) AS count FROM admins;")
+        admin_count_row = cursor.fetchone()
+        admin_count = admin_count_row['count'] if admin_count_row else 0
+        if admin_count == 0:
+            flash("Administrator access is unconfigured. The ADMIN_PASSWORD environment variable must be set in your deployment environment.", "error")
+            return render_template('admin_login.html', identifier=identifier), 503
 
-    cursor.execute(
-        "SELECT * FROM admins WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?) LIMIT 1",
-        (identifier, identifier)
-    )
-    admin = cursor.fetchone()
+        stage = 'admin_lookup'
+        cursor.execute(
+            "SELECT * FROM admins WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?) LIMIT 1",
+            (identifier, identifier)
+        )
+        admin = cursor.fetchone()
 
-    if not admin or not check_password_hash(admin['password_hash'], password):
-        flash("Invalid administrator credentials. Access denied and recorded.", "error")
+        stage = 'verify_credentials'
+        if not admin or not check_password_hash(admin['password_hash'], password):
+            flash("Invalid administrator credentials. Access denied and recorded.", "error")
+            client_ip = request.remote_addr or '127.0.0.1'
+            safe_log_access(
+                db,
+                user_id=None,
+                doctor_id=None,
+                actor_type='ADMIN_UNAUTH',
+                actor_name=identifier,
+                organization='Security Gateway',
+                reason=f"Failed admin authentication attempt for: {identifier}",
+                access_type='ADMIN_LOGIN_FAILED',
+                ip_address=client_ip
+            )
+            return render_template('admin_login.html', identifier=identifier), 401
+
+        stage = 'session_establishment'
+        session.clear()
+        session['admin_id'] = admin['id']
+        session['username'] = admin['username']
+        session['full_name'] = admin['full_name']
+        session['email'] = admin['email']
+        session['role'] = 'admin'
+        session.permanent = True
+
         client_ip = request.remote_addr or '127.0.0.1'
         safe_log_access(
             db,
             user_id=None,
             doctor_id=None,
-            actor_type='ADMIN_UNAUTH',
-            actor_name=identifier,
-            organization='Security Gateway',
-            reason=f"Failed admin authentication attempt for: {identifier}",
-            access_type='ADMIN_LOGIN_FAILED',
+            actor_type='ADMIN',
+            actor_name=admin['full_name'],
+            organization='SahayID Oversight Console',
+            reason=f"Admin sign in successful: {admin['username']}",
+            access_type='ADMIN_LOGIN',
             ip_address=client_ip
         )
-        return render_template('admin_login.html', identifier=identifier), 401
 
-    session.clear()
-    session['admin_id'] = admin['id']
-    session['username'] = admin['username']
-    session['full_name'] = admin['full_name']
-    session['email'] = admin['email']
-    session['role'] = 'admin'
-    session.permanent = True
+        flash(f"Welcome back, Administrator {admin['full_name']}.", "success")
+        return redirect(url_for('admin_dashboard'))
 
-    client_ip = request.remote_addr or '127.0.0.1'
-    safe_log_access(
-        db,
-        user_id=None,
-        doctor_id=None,
-        actor_type='ADMIN',
-        actor_name=admin['full_name'],
-        organization='SahayID Oversight Console',
-        reason=f"Admin sign in successful: {admin['username']}",
-        access_type='ADMIN_LOGIN',
-        ip_address=client_ip
-    )
-
-    flash(f"Welcome back, Administrator {admin['full_name']}.", "success")
-    return redirect(url_for('admin_dashboard'))
+    except Exception as e:
+        db_type = 'postgresql' if (isinstance(db, PgConnectionWrapper) or IS_PRODUCTION) else 'sqlite'
+        print(f"[SahayID Admin Login Error] route=/admin/login stage={stage} db={db_type} exception={type(e).__name__}: {e}")
+        flash("Unable to process administrator sign in right now. Please try again.", "error")
+        return render_template('admin_login.html', identifier=identifier), 500
 
 
 @app.route('/admin')

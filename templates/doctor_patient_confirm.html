@@ -9,6 +9,19 @@
             var theme = localStorage.getItem('sahayid-theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
         })();
+        window.deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.deferredPrompt = e;
+            console.log('[SahayID PWA] Native beforeinstallprompt captured early in head.');
+        });
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function(err) {
+                    console.log('[SahayID PWA] SW notice:', err);
+                });
+            });
+        }
     </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="manifest" href="/manifest.json">
