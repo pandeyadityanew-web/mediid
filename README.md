@@ -45,8 +45,8 @@ SahayID resolves this tension by providing:
 
 ## 📚 Technical Documentation Index
 
-For in-depth architectural and operational guides, explore the [`/docs`](/docs) directory:
-
+- 📋 **[Software Requirements Specification (SRS)](docs/SRS.md)**: Formal functional and non-functional requirements specification (IEEE 830 standard).
+- 📐 **[System Design Document (SDD)](docs/DESIGN.md)**: Architectural components, sequence diagrams, STRIDE threat model, and UI design system.
 - 🏛️ **[System Architecture](docs/ARCHITECTURE.md)**: Role-based access control, topology, and database entity relationships.
 - 🔒 **[Security & API Specification](docs/SECURITY_AND_API.md)**: Cryptographic hashing, OTP consent engine, HTTP defensive headers, and endpoints.
 - 👨‍⚕️ **[Administrator & Doctor Verification Guide](docs/ADMIN_GUIDE.md)**: Practitioner onboarding, license validation, and audit controls.
