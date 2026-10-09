@@ -291,7 +291,7 @@
                                             {% endif %}
                                         </td>
                                         <td>{{ req['reason'] or 'Clinical Review' }}</td>
-                                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ req['created_at'][:19] if req['created_at'] else '' }}</td>
+                                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ to_str_timestamp(req['created_at'])[:19] if req['created_at'] else '' }}</td>
                                         <td>
                                             {% if req['status'] == 'APPROVED' %}
                                                 <a href="{{ url_for('doctor_access_request_status', request_token=req['request_token']) }}" class="btn btn-success btn-sm">Enter OTP</a>
@@ -342,7 +342,7 @@
                                         <td><strong>{{ access['patient_name'] }}</strong></td>
                                         <td><span style="font-family: var(--font-mono); font-weight: 700; color: var(--primary);">{{ access['medi_id'] }}</span></td>
                                         <td>{{ access['reason'] or 'Authorized Clinical Review' }}</td>
-                                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ access['accessed_at'][:19] if access['accessed_at'] else '' }}</td>
+                                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ to_str_timestamp(access['accessed_at'])[:19] if access['accessed_at'] else '' }}</td>
                                         <td><code style="font-size: 0.8rem;">{{ access['ip_address'] }}</code></td>
                                         <td>
                                             <a href="{{ url_for('doctor_patient_confirm', medi_id=access['medi_id']) }}" class="btn btn-secondary btn-sm">

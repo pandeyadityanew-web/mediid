@@ -154,7 +154,7 @@
 
             <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
                 <div style="font-size: 0.75rem; color: var(--text-light); line-height: 1.4;">
-                    Member Since: <strong style="color: var(--text-muted);">{{ user['created_at'][:10] if user['created_at'] else '2026' }}</strong>
+                    Member Since: <strong style="color: var(--text-muted);">{{ to_str_timestamp(user['created_at'])[:10] if user['created_at'] else '2026' }}</strong>
                 </div>
             </div>
         </aside>
@@ -237,7 +237,7 @@
                                             <div style="font-size: 0.75rem; color: var(--text-muted);">{{ req['specialization'] }} ({{ req['doc_code'] }})</div>
                                         </td>
                                         <td>{{ req['reason'] or 'Clinical Review' }}</td>
-                                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ req['created_at'][:19] if req['created_at'] else '' }}</td>
+                                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ to_str_timestamp(req['created_at'])[:19] if req['created_at'] else '' }}</td>
                                         <td>
                                             {% if req['status'] == 'PENDING' %}
                                                 <span class="status-badge badge-pending">Pending Approval</span>

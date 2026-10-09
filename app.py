@@ -231,6 +231,10 @@ def to_str_timestamp(val):
     return str(val)
 
 
+app.jinja_env.filters['to_str_timestamp'] = to_str_timestamp
+app.jinja_env.globals['to_str_timestamp'] = to_str_timestamp
+
+
 def is_timestamp_expired(expires_at, now_dt=None):
     """
     Safely checks if an expires_at value (datetime object or string) is expired.
@@ -290,8 +294,8 @@ def get_csrf_token():
 
 @app.context_processor
 def inject_csrf_token():
-    """Inject csrf_token into all Jinja2 template contexts."""
-    return {'csrf_token': get_csrf_token()}
+    """Inject csrf_token and helpers into all Jinja2 template contexts."""
+    return {'csrf_token': get_csrf_token(), 'to_str_timestamp': to_str_timestamp}
 
 
 @app.before_request
@@ -1161,20 +1165,34 @@ def register():
             password_hash = generate_password_hash(password)
 
             stage = 'user_insert'
-            cursor.execute(
-                """
-                INSERT INTO users (medi_id, full_name, email, phone, password_hash)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (medi_id, full_name, email, phone, password_hash)
-            )
+            is_pg = isinstance(db, PgConnectionWrapper)
+            if is_pg:
+                cursor.execute(
+                    """
+                    INSERT INTO users (medi_id, full_name, email, phone, password_hash)
+                    VALUES (?, ?, ?, ?, ?)
+                    RETURNING id
+                    """,
+                    (medi_id, full_name, email, phone, password_hash)
+                )
+                res = cursor.fetchone()
+                user_id = res['id'] if hasattr(res, '__getitem__') and 'id' in res else (res[0] if res else None)
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO users (medi_id, full_name, email, phone, password_hash)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (medi_id, full_name, email, phone, password_hash)
+                )
+                user_id = cursor.lastrowid
+                if not user_id:
+                    cursor.execute("SELECT id FROM users WHERE medi_id = ?", (medi_id,))
+                    u_row = cursor.fetchone()
+                    user_id = u_row['id'] if u_row else None
 
-            stage = 'user_id_resolution'
-            cursor.execute("SELECT id FROM users WHERE medi_id = ?", (medi_id,))
-            u_row = cursor.fetchone()
-            if not u_row or not u_row['id']:
+            if not user_id:
                 raise RuntimeError("Failed to resolve generated user ID after insertion.")
-            user_id = u_row['id']
 
             stage = 'medical_profile_insert'
             cursor.execute(
