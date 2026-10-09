@@ -89,10 +89,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. How SahayID Works - Animated Process Path & Progress Fill
     const processContainer = document.querySelector('.process-flow-container');
     const processSteps = document.querySelectorAll('.process-step-node');
+    const processTrack = document.querySelector('.process-vertical-track');
     const processTrackFill = document.getElementById('processTrackFill');
 
     if (processContainer && processSteps.length > 0) {
+        const alignTrackGeometry = () => {
+            if (processSteps.length < 2 || !processTrack) return;
+            const firstCircle = processSteps[0].querySelector('.process-node-number');
+            const lastCircle = processSteps[processSteps.length - 1].querySelector('.process-node-number');
+            if (firstCircle && lastCircle) {
+                const containerRect = processContainer.getBoundingClientRect();
+                const firstRect = firstCircle.getBoundingClientRect();
+                const lastRect = lastCircle.getBoundingClientRect();
+
+                const startY = (firstRect.top + firstRect.height / 2) - containerRect.top;
+                const endY = (lastRect.top + lastRect.height / 2) - containerRect.top;
+                const centerX = (firstRect.left + firstRect.width / 2) - containerRect.left;
+
+                processTrack.style.top = `${startY}px`;
+                processTrack.style.height = `${Math.max(0, endY - startY)}px`;
+                processTrack.style.bottom = 'auto';
+                processTrack.style.left = `${centerX - 2}px`;
+            }
+        };
+
         const updateTimeline = () => {
+            alignTrackGeometry();
             const viewportMiddle = window.innerHeight * 0.65;
             let activeCount = 0;
 
@@ -121,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.addEventListener('scroll', updateTimeline, { passive: true });
         window.addEventListener('resize', updateTimeline, { passive: true });
+        window.addEventListener('load', updateTimeline);
         updateTimeline();
     }
 
