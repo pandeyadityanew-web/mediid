@@ -524,36 +524,66 @@ document.addEventListener('DOMContentLoaded', () => {
         sheet.classList.add('active');
     }
 
+    function showPwaInstallToast() {
+        let toast = document.getElementById('pwaInstallToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'pwaInstallToast';
+            toast.className = 'pwa-install-toast';
+            toast.innerHTML = `
+                <div class="pwa-toast-content">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <span>To install SahayID: Click the <strong>Install</strong> icon in your browser's address bar or menu.</span>
+                </div>
+            `;
+            document.body.appendChild(toast);
+        }
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 5000);
+    }
+
+    async function handleInstallClick(e) {
+        if (e) e.preventDefault();
+        const activePrompt = window.deferredPrompt || deferredPrompt;
+        if (activePrompt) {
+            try {
+                activePrompt.prompt();
+                const choiceResult = await activePrompt.userChoice;
+                if (choiceResult && choiceResult.outcome === 'accepted') {
+                    installBtns.forEach(btn => btn.style.display = 'none');
+                }
+            } catch (err) {
+                console.warn('[SahayID PWA] Prompt outcome error:', err);
+                showPwaInstallToast();
+            }
+            window.deferredPrompt = null;
+            deferredPrompt = null;
+        } else if (isIos) {
+            openIosInstallSheet();
+        } else {
+            showPwaInstallToast();
+        }
+    }
+
     if (isStandalone) {
         installBtns.forEach(b => b.style.display = 'none');
     } else {
         // Keep Install App button visible in navigation
         installBtns.forEach(b => {
             b.style.display = 'inline-flex';
-            b.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const activePrompt = window.deferredPrompt || deferredPrompt;
-                if (activePrompt) {
-                    // Trigger native browser installation prompt dialog
-                    activePrompt.prompt();
-                    try {
-                        const choiceResult = await activePrompt.userChoice;
-                        if (choiceResult && choiceResult.outcome === 'accepted') {
-                            installBtns.forEach(btn => btn.style.display = 'none');
-                        }
-                    } catch (err) {
-                        console.warn('[SahayID PWA] Prompt outcome error:', err);
-                    }
-                    window.deferredPrompt = null;
-                    deferredPrompt = null;
-                } else if (isIos) {
-                    openIosInstallSheet();
-                } else {
-                    console.log('[SahayID PWA] Native prompt requested; awaiting browser installation readiness.');
-                }
-            });
+            b.addEventListener('click', handleInstallClick);
         });
     }
+
+    // Global click delegation for all .pwa-install-btn elements
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.pwa-install-btn');
+        if (btn) {
+            handleInstallClick(e);
+        }
+    });
 
     window.addEventListener('appinstalled', () => {
         window.deferredPrompt = null;
