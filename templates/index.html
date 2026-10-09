@@ -262,45 +262,71 @@
             </div>
 
             <div class="process-flow-container">
-                <div class="process-vertical-track">
-                    <div class="process-track-fill" id="processTrackFill"></div>
+                <!-- Step 1 -->
+                <div class="process-step-item step-active" data-step="1">
+                    <div class="process-rail">
+                        <div class="process-node-number">1</div>
+                        <div class="process-connector-segment">
+                            <div class="process-connector-fill"></div>
+                        </div>
+                    </div>
+                    <div class="process-card">
+                        <h3 class="process-node-title">Create Your SahayID</h3>
+                        <p class="process-node-desc">Register securely with your basic credentials to receive your unique collision-resistant SahayID Number (<code>MED-XXXXXXXX</code>).</p>
+                    </div>
                 </div>
 
-                <div class="process-step-node">
-                    <div class="process-node-number">1</div>
-                    <h3 class="process-node-title">Create Your SahayID</h3>
-                    <p class="process-node-desc">Register securely with your basic credentials to receive your unique
-                        collision-resistant SahayID Number (<code>MED-XXXXXXXX</code>).</p>
+                <!-- Step 2 -->
+                <div class="process-step-item" data-step="2">
+                    <div class="process-rail">
+                        <div class="process-node-number">2</div>
+                        <div class="process-connector-segment">
+                            <div class="process-connector-fill"></div>
+                        </div>
+                    </div>
+                    <div class="process-card">
+                        <h3 class="process-node-title">Add Medical Information</h3>
+                        <p class="process-node-desc">Populate your medical profile with blood group, allergies, chronic conditions, active prescriptions, surgical history, and next-of-kin contacts.</p>
+                    </div>
                 </div>
 
-                <div class="process-step-node">
-                    <div class="process-node-number">2</div>
-                    <h3 class="process-node-title">Add Medical Information</h3>
-                    <p class="process-node-desc">Populate your medical profile with blood group, allergies, chronic
-                        conditions, active prescriptions, surgical history, and next-of-kin contacts.</p>
+                <!-- Step 3 -->
+                <div class="process-step-item" data-step="3">
+                    <div class="process-rail">
+                        <div class="process-node-number">3</div>
+                        <div class="process-connector-segment">
+                            <div class="process-connector-fill"></div>
+                        </div>
+                    </div>
+                    <div class="process-card">
+                        <h3 class="process-node-title">Get Your Secure QR Badge</h3>
+                        <p class="process-node-desc">Download your scannable QR card or print your physical wallet badge. The QR contains solely routing parameters—zero health data.</p>
+                    </div>
                 </div>
 
-                <div class="process-step-node">
-                    <div class="process-node-number">3</div>
-                    <h3 class="process-node-title">Get Your Secure QR Badge</h3>
-                    <p class="process-node-desc">Download your scannable QR card or print your physical wallet badge.
-                        The QR contains solely routing parameters—zero health data.</p>
+                <!-- Step 4 -->
+                <div class="process-step-item" data-step="4">
+                    <div class="process-rail">
+                        <div class="process-node-number">4</div>
+                        <div class="process-connector-segment">
+                            <div class="process-connector-fill"></div>
+                        </div>
+                    </div>
+                    <div class="process-card">
+                        <h3 class="process-node-title">Authorized Clinical Access (Consent + OTP)</h3>
+                        <p class="process-node-desc">When visiting a clinic or hospital, your doctor scans your QR or enters your SahayID. You approve the request on your dashboard and provide the 6-digit OTP to grant temporary access.</p>
+                    </div>
                 </div>
 
-                <div class="process-step-node">
-                    <div class="process-node-number">4</div>
-                    <h3 class="process-node-title">Authorized Clinical Access (Consent + OTP)</h3>
-                    <p class="process-node-desc">When visiting a clinic or hospital, your doctor scans your QR or enters
-                        your SahayID. You approve the request on your dashboard and provide the 6-digit OTP to grant
-                        temporary access.</p>
-                </div>
-
-                <div class="process-step-node">
-                    <div class="process-node-number">5</div>
-                    <h3 class="process-node-title">Emergency Break-Glass When Needed</h3>
-                    <p class="process-node-desc">If incapacitated during an emergency, first responders use the audited
-                        break-glass portal to view essential vitals and contacts only, while private records remain
-                        protected.</p>
+                <!-- Step 5 (Terminating Step - No connector below this) -->
+                <div class="process-step-item" data-step="5">
+                    <div class="process-rail">
+                        <div class="process-node-number">5</div>
+                    </div>
+                    <div class="process-card">
+                        <h3 class="process-node-title">Emergency Break-Glass When Needed</h3>
+                        <p class="process-node-desc">If incapacitated during an emergency, first responders use the audited break-glass portal to view essential vitals and contacts only, while private records remain protected.</p>
+                    </div>
                 </div>
             </div>
         </div>

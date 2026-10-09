@@ -1,5 +1,5 @@
 // SahayID Service Worker for PWA installation & reliable offline asset caching
-const CACHE_NAME = 'sahayid-v4';
+const CACHE_NAME = 'sahayid-v5';
 const ASSETS = [
   '/',
   '/manifest.json',
@@ -16,9 +16,17 @@ self.addEventListener('install', (e) => {
   self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS).catch((err) => {
-        console.log('[SahayID SW] Cache asset load note:', err);
-      });
+      return Promise.allSettled(
+        ASSETS.map((url) =>
+          fetch(url)
+            .then((res) => {
+              if (res.ok) return cache.put(url, res);
+            })
+            .catch((err) => {
+              console.log('[SahayID SW] Cache fetch note for:', url, err);
+            })
+        )
+      );
     })
   );
 });

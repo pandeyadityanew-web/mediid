@@ -65,161 +65,118 @@
     </header>
 
     <!-- Main Dashboard Body -->
-    <main class="main-wrapper" style="max-width: 1280px; margin: 1.5rem auto; padding: 0 1.25rem;">
-        <!-- Flash Notification Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages" style="margin-bottom: 1.5rem;">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+    <main class="admin-page-wrapper">
+        <div class="admin-container">
+            <!-- Flash Notification Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages" style="margin-bottom: 0.5rem;">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
 
-        <!-- Admin Header & Identity Banner -->
-        <div class="table-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-subtle) 100%);">
-            <div style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div style="width: 52px; height: 52px; border-radius: 12px; background: rgba(2, 132, 199, 0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <!-- Admin Header & Identity Hero Card -->
+            <div class="admin-hero-card">
+                <div class="admin-hero-identity">
+                    <div class="admin-hero-icon">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                             <circle cx="12" cy="11" r="3"/>
                         </svg>
                     </div>
                     <div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                            <h1 style="font-size: 1.45rem; font-weight: 800; color: var(--text-primary); margin: 0;">
-                                Physician Credential Verification & Oversight
-                            </h1>
+                        <h1 class="admin-hero-title">
+                            <span>Physician Credential Verification &amp; Oversight</span>
                             <span class="status-badge badge-doctor" style="font-size: 0.725rem;">Master Admin</span>
-                        </div>
-                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+                        </h1>
+                        <div class="admin-hero-meta">
                             Signed in as <strong>{{ session.get('full_name', 'Administrator') }}</strong> &bull; Authenticated Admin Session
                         </div>
                     </div>
                 </div>
                 <div>
-                    <a href="{{ url_for('admin_logout') }}" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                    <a href="{{ url_for('admin_logout') }}" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.4rem;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                         <span>Sign Out</span>
                     </a>
                 </div>
             </div>
-        </div>
 
-        <!-- Summary Stat Cards -->
-        <div class="stat-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
-            <!-- Pending Doctors -->
-            <div class="metric-card" style="border-left: 4px solid #f59e0b;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #b45309; letter-spacing: 0.05em;">Pending Review</div>
-                        <div style="font-size: 2rem; font-weight: 800; color: var(--text-primary); line-height: 1.2; margin-top: 0.25rem;">
-                            {{ stats['pending_doctors'] }}
-                        </div>
+            <!-- Summary Stat Cards -->
+            <div class="admin-stats-grid">
+                <!-- 1. Pending Doctors -->
+                <div class="admin-stat-card card-pending">
+                    <div class="admin-stat-top">
+                        <span class="admin-stat-label">Pending Review</span>
+                        <div class="admin-stat-icon">⏳</div>
                     </div>
-                    <div style="width: 42px; height: 42px; border-radius: 50%; background: var(--warning-light); color: #b45309; display: flex; align-items: center; justify-content: center;">
-                        ⏳
-                    </div>
+                    <div class="admin-stat-value">{{ stats['pending_doctors'] }}</div>
+                    <div class="admin-stat-desc">Physicians awaiting verification</div>
                 </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
-                    Physicians awaiting verification
+
+                <!-- 2. Verified Doctors -->
+                <div class="admin-stat-card card-verified">
+                    <div class="admin-stat-top">
+                        <span class="admin-stat-label">Verified Active</span>
+                        <div class="admin-stat-icon">✓</div>
+                    </div>
+                    <div class="admin-stat-value">{{ stats['verified_doctors'] }}</div>
+                    <div class="admin-stat-desc">Authorized clinical practitioners</div>
+                </div>
+
+                <!-- 3. Rejected Applications -->
+                <div class="admin-stat-card card-rejected">
+                    <div class="admin-stat-top">
+                        <span class="admin-stat-label">Rejected</span>
+                        <div class="admin-stat-icon">✕</div>
+                    </div>
+                    <div class="admin-stat-value">{{ stats['rejected_doctors'] }}</div>
+                    <div class="admin-stat-desc">Denied credentials applications</div>
+                </div>
+
+                <!-- 4. Total Patients -->
+                <div class="admin-stat-card card-patients">
+                    <div class="admin-stat-top">
+                        <span class="admin-stat-label">Registered Patients</span>
+                        <div class="admin-stat-icon">🏥</div>
+                    </div>
+                    <div class="admin-stat-value">{{ stats['total_patients'] }}</div>
+                    <div class="admin-stat-desc">Active SahayID identities</div>
+                </div>
+
+                <!-- 5. Audit Events -->
+                <div class="admin-stat-card card-audit">
+                    <div class="admin-stat-top">
+                        <span class="admin-stat-label">Audit Trail</span>
+                        <div class="admin-stat-icon">📋</div>
+                    </div>
+                    <div class="admin-stat-value">{{ stats['total_audit_events'] }}</div>
+                    <div class="admin-stat-desc">Logged security events</div>
                 </div>
             </div>
 
-            <!-- Verified Doctors -->
-            <div class="metric-card" style="border-left: 4px solid var(--success);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--success); letter-spacing: 0.05em;">Verified Active</div>
-                        <div style="font-size: 2rem; font-weight: 800; color: var(--text-primary); line-height: 1.2; margin-top: 0.25rem;">
-                            {{ stats['verified_doctors'] }}
-                        </div>
-                    </div>
-                    <div style="width: 42px; height: 42px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center;">
-                        ✓
-                    </div>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
-                    Authorized clinical practitioners
-                </div>
+            <!-- Tabbed Navigation Bar -->
+            <div class="admin-tabs-wrapper">
+                <button type="button" class="admin-tab-button active" data-target="tab-pending">
+                    <span>⏳ Pending Review</span>
+                    <span class="badge-pending" style="padding: 0.15rem 0.55rem; border-radius: 9999px; font-size: 0.75rem;">{{ pending_doctors|length }}</span>
+                </button>
+                <button type="button" class="admin-tab-button" data-target="tab-verified">
+                    <span>✓ Verified Doctors</span>
+                    <span class="badge-verified" style="padding: 0.15rem 0.55rem; border-radius: 9999px; font-size: 0.75rem;">{{ verified_doctors|length }}</span>
+                </button>
+                <button type="button" class="admin-tab-button" data-target="tab-rejected">
+                    <span>✕ Rejected Applications</span>
+                    <span class="badge-denied" style="padding: 0.15rem 0.55rem; border-radius: 9999px; font-size: 0.75rem;">{{ rejected_doctors|length }}</span>
+                </button>
+                <button type="button" class="admin-tab-button" data-target="tab-audit">
+                    <span>📋 Audit Activity Logs</span>
+                    <span style="background: var(--bg-subtle); color: var(--text-muted); padding: 0.15rem 0.55rem; border-radius: 9999px; font-size: 0.75rem; border: 1px solid var(--border-subtle);">{{ audit_logs|length }}</span>
+                </button>
             </div>
-
-            <!-- Rejected Applications -->
-            <div class="metric-card" style="border-left: 4px solid var(--emergency);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--emergency); letter-spacing: 0.05em;">Rejected</div>
-                        <div style="font-size: 2rem; font-weight: 800; color: var(--text-primary); line-height: 1.2; margin-top: 0.25rem;">
-                            {{ stats['rejected_doctors'] }}
-                        </div>
-                    </div>
-                    <div style="width: 42px; height: 42px; border-radius: 50%; background: var(--emergency-light); color: var(--emergency); display: flex; align-items: center; justify-content: center;">
-                        ✕
-                    </div>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
-                    Denied credentials applications
-                </div>
-            </div>
-
-            <!-- Total Patients -->
-            <div class="metric-card" style="border-left: 4px solid var(--primary);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: var(--primary); letter-spacing: 0.05em;">Registered Patients</div>
-                        <div style="font-size: 2rem; font-weight: 800; color: var(--text-primary); line-height: 1.2; margin-top: 0.25rem;">
-                            {{ stats['total_patients'] }}
-                        </div>
-                    </div>
-                    <div style="width: 42px; height: 42px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center;">
-                        🏥
-                    </div>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
-                    Active SahayID identities
-                </div>
-            </div>
-
-            <!-- Audit Events -->
-            <div class="metric-card" style="border-left: 4px solid #6366f1;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #6366f1; letter-spacing: 0.05em;">Audit Trail</div>
-                        <div style="font-size: 2rem; font-weight: 800; color: var(--text-primary); line-height: 1.2; margin-top: 0.25rem;">
-                            {{ stats['total_audit_events'] }}
-                        </div>
-                    </div>
-                    <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(99, 102, 241, 0.12); color: #6366f1; display: flex; align-items: center; justify-content: center;">
-                        📋
-                    </div>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
-                    Logged security events
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabbed Navigation Bar -->
-        <div class="admin-tab-nav" style="display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border-default); margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 2px;">
-            <button type="button" class="admin-tab-btn active" data-target="tab-pending" style="padding: 0.75rem 1.25rem; font-weight: 700; font-size: 0.9rem; border: none; background: none; color: var(--text-primary); border-bottom: 3px solid var(--primary); cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
-                <span>⏳ Pending Review</span>
-                <span class="badge-pending" style="padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.75rem;">{{ pending_doctors|length }}</span>
-            </button>
-            <button type="button" class="admin-tab-btn" data-target="tab-verified" style="padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; border: none; background: none; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
-                <span>✓ Verified Doctors</span>
-                <span class="badge-verified" style="padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.75rem;">{{ verified_doctors|length }}</span>
-            </button>
-            <button type="button" class="admin-tab-btn" data-target="tab-rejected" style="padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; border: none; background: none; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
-                <span>✕ Rejected Applications</span>
-                <span class="badge-denied" style="padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.75rem;">{{ rejected_doctors|length }}</span>
-            </button>
-            <button type="button" class="admin-tab-btn" data-target="tab-audit" style="padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; border: none; background: none; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
-                <span>📋 Audit Activity Logs</span>
-                <span style="background: var(--bg-subtle); color: var(--text-secondary); padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; border: 1px solid var(--border-default);">{{ audit_logs|length }}</span>
-            </button>
-        </div>
 
         <!-- ================================================================= -->
         <!-- TAB 1: PENDING DOCTOR VERIFICATIONS -->
@@ -572,7 +529,7 @@
     <!-- Modal for Rejecting Practitioner Verification with Reason -->
     <div class="role-modal-overlay" id="rejectModal" style="display: none;" aria-hidden="true">
         <div class="role-modal-container" style="max-width: 500px;">
-            <div class="role-modal-header" style="border-bottom: 1px solid var(--border-default); padding-bottom: 0.75rem;">
+            <div class="role-modal-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
                 <div>
                     <div class="role-modal-eyebrow" style="color: var(--emergency);">Administrative Decision</div>
                     <h3 class="role-modal-title" style="margin-top: 0.2rem;">Reject Practitioner Verification</h3>
@@ -581,7 +538,7 @@
             </div>
 
             <form id="rejectForm" method="POST" action="">
-                <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 1rem 0 0.75rem 0;">
+                <p style="font-size: 0.875rem; color: var(--text-muted); margin: 1rem 0 0.75rem 0;">
                     You are rejecting verification for <strong id="rejectDoctorName"></strong> (License: <span id="rejectDoctorReg" style="font-family: var(--font-mono); font-weight: 700;"></span>).
                 </p>
 
@@ -623,23 +580,17 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Tab switching logic
-            const tabButtons = document.querySelectorAll('.admin-tab-btn');
+            const tabButtons = document.querySelectorAll('.admin-tab-button, .admin-tab-btn');
             const tabPanes = document.querySelectorAll('.admin-tab-pane');
 
             tabButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
                     tabButtons.forEach(b => {
                         b.classList.remove('active');
-                        b.style.borderBottom = 'none';
-                        b.style.color = 'var(--text-muted)';
-                        b.style.fontWeight = '600';
                     });
                     tabPanes.forEach(pane => pane.style.display = 'none');
 
                     btn.classList.add('active');
-                    btn.style.borderBottom = '3px solid var(--primary)';
-                    btn.style.color = 'var(--text-primary)';
-                    btn.style.fontWeight = '700';
 
                     const targetId = btn.getAttribute('data-target');
                     const targetPane = document.getElementById(targetId);

@@ -1033,7 +1033,7 @@ def ensure_db_initialized():
     Prevents crashing during module import / cold-start in serverless runtimes.
     Static assets bypass database initialization to ensure CSS/images always serve.
     """
-    if request.path.startswith('/static') or request.path == '/favicon.ico':
+    if request.path.startswith('/static') or request.path in ('/favicon.ico', '/manifest.json', '/manifest.webmanifest', '/sw.js'):
         return
     global _db_initialized
     if not _db_initialized:

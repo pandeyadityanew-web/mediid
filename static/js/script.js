@@ -86,64 +86,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 5. How SahayID Works - Animated Process Path & Progress Fill
-    const processContainer = document.querySelector('.process-flow-container');
-    const processSteps = document.querySelectorAll('.process-step-node');
-    const processTrack = document.querySelector('.process-vertical-track');
-    const processTrackFill = document.getElementById('processTrackFill');
-
-    if (processContainer && processSteps.length > 0) {
-        const alignTrackGeometry = () => {
-            if (processSteps.length < 2 || !processTrack) return;
-            const firstCircle = processSteps[0].querySelector('.process-node-number');
-            const lastCircle = processSteps[processSteps.length - 1].querySelector('.process-node-number');
-            if (firstCircle && lastCircle) {
-                const containerRect = processContainer.getBoundingClientRect();
-                const firstRect = firstCircle.getBoundingClientRect();
-                const lastRect = lastCircle.getBoundingClientRect();
-
-                const startY = (firstRect.top + firstRect.height / 2) - containerRect.top;
-                const endY = (lastRect.top + lastRect.height / 2) - containerRect.top;
-                const centerX = (firstRect.left + firstRect.width / 2) - containerRect.left;
-
-                processTrack.style.top = `${startY}px`;
-                processTrack.style.height = `${Math.max(0, endY - startY)}px`;
-                processTrack.style.bottom = 'auto';
-                processTrack.style.left = `${centerX - 2}px`;
-            }
-        };
-
+    // 5. How SahayID Works - Step Scroll Highlighting
+    const processItems = document.querySelectorAll('.process-step-item');
+    if (processItems.length > 0) {
         const updateTimeline = () => {
-            alignTrackGeometry();
-            const viewportMiddle = window.innerHeight * 0.65;
-            let activeCount = 0;
+            const viewportMiddle = window.innerHeight * 0.72;
 
-            processSteps.forEach((step, idx) => {
-                const rect = step.getBoundingClientRect();
+            processItems.forEach((item, idx) => {
+                const rect = item.getBoundingClientRect();
+                const fill = item.querySelector('.process-connector-fill');
                 if (rect.top <= viewportMiddle) {
-                    step.classList.add('step-active');
-                    activeCount = idx + 1;
-                } else if (idx > 0) {
-                    step.classList.remove('step-active');
+                    item.classList.add('step-active');
+                    if (fill) fill.style.height = '100%';
+                } else {
+                    if (idx > 0) {
+                        item.classList.remove('step-active');
+                        if (fill) fill.style.height = '0%';
+                    }
                 }
             });
 
-            // Ensure first step is active if container is at or above viewport
-            const containerRect = processContainer.getBoundingClientRect();
-            if (containerRect.top <= viewportMiddle && activeCount === 0) {
-                processSteps[0].classList.add('step-active');
-                activeCount = 1;
-            }
-
-            if (processTrackFill && activeCount > 0) {
-                const fillPct = ((activeCount - 1) / Math.max(1, processSteps.length - 1)) * 100;
-                processTrackFill.style.height = `${fillPct}%`;
+            // Ensure first step is active by default
+            if (processItems[0]) {
+                processItems[0].classList.add('step-active');
             }
         };
 
         window.addEventListener('scroll', updateTimeline, { passive: true });
         window.addEventListener('resize', updateTimeline, { passive: true });
-        window.addEventListener('load', updateTimeline);
         updateTimeline();
     }
 
@@ -502,6 +472,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const installBtns = document.querySelectorAll('.pwa-install-btn');
 
+    let isPrompting = false;
+
+    // Diagnostic log for PWA state
+    console.log('[SahayID PWA Diagnostics]', {
+        serviceWorkerSupported: 'serviceWorker' in navigator,
+        isStandalone: isStandalone,
+        isIos: isIos,
+        deferredPromptCaptured: Boolean(window.deferredPrompt || deferredPrompt)
+    });
+
     // Create & reveal iOS install guidance sheet
     function openIosInstallSheet() {
         let sheet = document.getElementById('iosInstallSheet');
@@ -568,45 +548,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleInstallClick(e) {
-        if (e) e.preventDefault();
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        if (isPrompting) return;
+
         const activePrompt = window.deferredPrompt || deferredPrompt;
+        console.log('[SahayID PWA] Install button clicked. Active prompt present:', Boolean(activePrompt));
+
         if (activePrompt) {
+            isPrompting = true;
             try {
-                activePrompt.prompt();
+                await activePrompt.prompt();
                 const choiceResult = await activePrompt.userChoice;
+                console.log('[SahayID PWA] User prompt decision:', choiceResult);
                 if (choiceResult && choiceResult.outcome === 'accepted') {
                     installBtns.forEach(btn => btn.style.display = 'none');
                 }
             } catch (err) {
-                console.warn('[SahayID PWA] Prompt outcome error:', err);
-                showPwaInstallToast();
+                console.warn('[SahayID PWA] Prompt execution notice:', err);
+            } finally {
+                window.deferredPrompt = null;
+                deferredPrompt = null;
+                isPrompting = false;
             }
-            window.deferredPrompt = null;
-            deferredPrompt = null;
-        } else if (isIos) {
-            openIosInstallSheet();
-        } else {
-            showPwaInstallToast();
+            return;
         }
+
+        if (isIos) {
+            openIosInstallSheet();
+            return;
+        }
+
+        // Only show browser menu instruction if prompt is not supported/ready
+        showPwaInstallToast();
     }
 
     if (isStandalone) {
         installBtns.forEach(b => b.style.display = 'none');
     } else {
-        // Keep Install App button visible in navigation
+        // Single clean listener registration on each button
         installBtns.forEach(b => {
             b.style.display = 'inline-flex';
             b.addEventListener('click', handleInstallClick);
         });
     }
-
-    // Global click delegation for all .pwa-install-btn elements
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('.pwa-install-btn');
-        if (btn) {
-            handleInstallClick(e);
-        }
-    });
 
     window.addEventListener('appinstalled', () => {
         window.deferredPrompt = null;
