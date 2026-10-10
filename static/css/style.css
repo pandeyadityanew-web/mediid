@@ -3736,3 +3736,477 @@ html, body {
   }
 }
 
+/* ==========================================================================
+   Patient Medical Record Hospital Dashboard (Redesign)
+   ========================================================================== */
+.patient-record-page-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: calc(100vh - 130px);
+  width: 100%;
+  padding: 2.25rem 1.5rem 4rem;
+  box-sizing: border-box;
+  background-color: var(--bg-app);
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(2, 132, 199, 0.06), transparent 75%),
+    url('../images/wave-bg.png');
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+[data-theme="dark"] .patient-record-page-wrapper {
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(56, 189, 248, 0.08), transparent 75%),
+    url('../images/wave-bg.png');
+}
+
+.patient-record-container {
+  width: 100%;
+  max-width: 1150px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Clinical Authorization Status Bar */
+.clinical-auth-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background-color: var(--success-light);
+  border: 1px solid var(--success-border);
+  border-left: 5px solid var(--success);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.25rem;
+  box-sizing: border-box;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.clinical-auth-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.clinical-auth-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--success);
+  background: var(--bg-surface);
+  border: 1px solid var(--success-border);
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* Patient Summary Hero Card */
+.patient-record-header-card {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem 1.75rem;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.patient-record-identity {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex: 1;
+}
+
+.patient-record-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  border: 2px solid var(--primary-border);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.patient-record-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.patient-record-info-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.patient-record-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.patient-record-name {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.patient-record-details-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.patient-record-details-row span strong {
+  color: var(--text-main);
+}
+
+.patient-id-badge-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--primary-border);
+}
+
+/* Blood Group Box on Right */
+.patient-blood-badge-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.patient-blood-title {
+  font-size: 0.725rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.patient-blood-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  color: #ffffff;
+  padding: 0.45rem 1.15rem;
+  border-radius: var(--radius-md);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 6px rgba(225, 29, 72, 0.25);
+}
+
+[data-theme="dark"] .patient-blood-badge-pill {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.35);
+}
+
+/* Page Section Header Above Grid */
+.medical-overview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.overview-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.overview-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0.25rem 0 0 0;
+}
+
+/* 2-Column Responsive Medical Grid */
+.patient-record-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.35rem;
+  width: 100%;
+}
+
+.clinical-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.clinical-card.card-allergies {
+  border-top: 4px solid var(--emergency);
+}
+
+.clinical-card.card-conditions {
+  border-top: 4px solid var(--primary);
+}
+
+.clinical-card.card-medications {
+  border-top: 4px solid var(--secondary);
+}
+
+.clinical-card.card-surgeries {
+  border-top: 4px solid #6366f1;
+}
+
+.clinical-card.card-notes {
+  border-top: 4px solid #f59e0b;
+}
+
+.clinical-card.card-contacts {
+  border-top: 4px solid #0284c7;
+}
+
+.clinical-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-subtle);
+}
+
+.clinical-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.clinical-card-title svg {
+  flex-shrink: 0;
+}
+
+.card-allergies .clinical-card-title svg { color: var(--emergency); }
+.card-conditions .clinical-card-title svg { color: var(--primary); }
+.card-medications .clinical-card-title svg { color: var(--secondary); }
+.card-surgeries .clinical-card-title svg { color: #6366f1; }
+.card-notes .clinical-card-title svg { color: #f59e0b; }
+.card-contacts .clinical-card-title svg { color: #0284c7; }
+
+.clinical-card-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.clinical-card-subtitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.clinical-content-box {
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.65;
+  color: var(--text-main);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+}
+
+.card-allergies .clinical-content-box {
+  background: var(--emergency-light);
+  border-color: var(--emergency-border);
+  color: #991b1b;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .card-allergies .clinical-content-box {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+.clinical-empty-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-style: italic;
+  padding: 0.75rem 1rem;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-strong);
+}
+
+/* Contacts Inside Card */
+.patient-contacts-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.patient-contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.patient-contact-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+}
+
+.patient-contact-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.patient-contact-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.patient-contact-rel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.patient-contact-call-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+  background: var(--bg-surface);
+  border: 1px solid var(--primary-border);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.patient-contact-call-btn:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+/* Bottom Action Row */
+.patient-record-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Responsive Rules for Patient Record */
+@media (max-width: 900px) {
+  .patient-record-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .patient-record-page-wrapper {
+    padding: 1.25rem 0.85rem 3rem;
+  }
+  .patient-record-header-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.25rem;
+  }
+  .patient-record-identity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.85rem;
+  }
+  .patient-blood-badge-box {
+    align-items: flex-start;
+    width: 100%;
+  }
+  .patient-record-details-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+  .patient-contact-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .patient-record-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .patient-record-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
