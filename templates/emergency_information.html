@@ -56,115 +56,152 @@
         </div>
     </header>
 
-    <main class="main-wrapper">
-        {% if expired or error %}
-            <!-- Expired / Invalid State -->
-            <div class="auth-container" style="max-width: 520px; margin-top: 3rem;">
-                <div class="auth-card" style="text-align: center; border-top: 4px solid var(--emergency);">
-                    <div style="width: 56px; height: 56px; border-radius: 50%; background-color: var(--emergency-light); color: var(--emergency); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="8" x2="12" y2="12"></line>
-                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                        </svg>
-                    </div>
+    <main class="emergency-page-wrapper">
+        <div class="emergency-container">
+            {% if expired or error %}
+                <!-- Expired / Invalid State -->
+                <div class="auth-container" style="max-width: 520px; margin: 3rem auto;">
+                    <div class="auth-card" style="text-align: center; border-top: 4px solid var(--emergency);">
+                        <div style="width: 60px; height: 60px; border-radius: 50%; background-color: var(--emergency-light); color: var(--emergency); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;">
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
 
-                    <h1 class="auth-title">{{ error or "Emergency access has expired." }}</h1>
-                    <p class="auth-subtitle" style="margin-bottom: 1.75rem;">
-                        For patient privacy and clinical record security, temporary emergency tokens expire automatically after 10 minutes.
-                    </p>
+                        <h1 class="auth-title">{{ error or "Emergency access has expired." }}</h1>
+                        <p class="auth-subtitle" style="margin-bottom: 1.75rem;">
+                            For patient privacy and clinical record security, temporary emergency tokens expire automatically after 10 minutes.
+                        </p>
 
-                    {% if medi_id %}
-                        <a href="{{ url_for('emergency_verify', medi_id=medi_id) }}" class="btn btn-primary btn-block" style="background-color: var(--emergency); margin-bottom: 0.75rem;">
-                            Re-verify Emergency Access
+                        {% if medi_id %}
+                            <a href="{{ url_for('emergency_verify', medi_id=medi_id) }}" class="btn btn-primary btn-block" style="background-color: var(--emergency); margin-bottom: 0.75rem;">
+                                Re-verify Emergency Access
+                            </a>
+                        {% endif %}
+
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary btn-block">
+                            Return to SahayID
                         </a>
-                    {% endif %}
-
-                    <a href="{{ url_for('index') }}" class="btn btn-secondary btn-block">
-                        Return to SahayID
-                    </a>
+                    </div>
                 </div>
-            </div>
 
-        {% else %}
-            <!-- Active Emergency Medical Information -->
-            <section class="emergency-live-banner">
-                <div class="emergency-title-box">
-                    <span class="pulse-dot"></span>
-                    <div>
-                        <h1 style="font-size: 1.75rem; font-weight: 800; color: #881337; margin: 0; line-height: 1.2;">
-                            EMERGENCY ACCESS
-                        </h1>
-                        <p style="margin: 0.25rem 0 0 0; color: #4b5563; font-size: 0.95rem; font-weight: 500;">
-                            Emergency Break-Glass Access &bull; Limited Critical Information Tier
+            {% else %}
+                <!-- 1. Emergency Warning Banner -->
+                <section class="emergency-banner-card">
+                    <div class="emergency-banner-left">
+                        <div class="emergency-banner-tag-row">
+                            <span class="pulse-dot"></span>
+                            <span class="badge-breakglass-pill">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                Emergency Break-Glass Access
+                            </span>
+                            <span class="emergency-tag tag-critical-red">Restricted Critical Tier</span>
+                        </div>
+                        <h1 class="emergency-banner-heading">EMERGENCY ACCESS</h1>
+                        <p class="emergency-banner-desc">
+                            Authorized emergency first responder access strictly limited to immediate life-saving medical data: <strong>Blood Group</strong>, <strong>Critical Allergies</strong>, <strong>Critical Conditions</strong>, <strong>Active Medications</strong>, and <strong>Next-of-Kin Contacts</strong>. Detailed clinical notes and surgical histories are withheld and accessible only to Authorized Doctors.
                         </p>
                     </div>
-                </div>
 
-                <div class="countdown-box" id="timerBox">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    <span>Session Expires in: <strong id="countdownTimer">10:00</strong></span>
-                </div>
-            </section>
-
-            <!-- Limited Critical Tier Notice -->
-            <div class="emergency-tier-notice" style="margin: 1.25rem 0;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                    <span class="badge-breakglass">Emergency Break-Glass Tier</span>
-                    <strong style="color: #9f1239;">Restricted Critical Emergency View</strong>
-                </div>
-                <p style="margin: 0; font-size: 0.875rem; line-height: 1.5;">
-                    This interface is restricted strictly to immediate life-saving medical data: <strong>Blood Group</strong>, <strong>Critical Allergies</strong>, <strong>Critical Conditions</strong>, <strong>Active Medications</strong>, and <strong>Next-of-Kin Emergency Contacts</strong>. Detailed clinical histories, surgical notes, and full practitioner consultations are withheld and accessible only to Authorized Doctors.
-                </p>
-            </div>
-
-            <!-- Clinical Disclaimer & Verification Notice -->
-            <div class="alert alert-warning" style="margin: 1.25rem 0; background-color: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; color: #92400e; padding: 0.85rem 1.25rem; border-radius: 8px; font-size: 0.925rem; display: flex; align-items: center; gap: 0.75rem;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                    <line x1="12" y1="9" x2="12" y2="13"></line>
-                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-                <span><strong>Clinical Advisory:</strong> Verify critical medical information with the patient or healthcare professionals whenever possible.</span>
-            </div>
-
-            <!-- Patient Overview & Blood Type Banner -->
-            <div class="patient-banner" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border-left: 6px solid var(--primary);">
-                <div class="patient-info">
-                    <h1>{{ patient['full_name'] }}</h1>
-                    <div class="patient-meta" style="margin-top: 0.5rem;">
-                        <span class="medi-id-chip">{{ patient['medi_id'] }}</span>
-                        {% if patient['date_of_birth'] %}
-                            <span>DOB: <strong>{{ patient['date_of_birth'] }}</strong></span>
-                        {% endif %}
-                        {% if patient['gender'] %}
-                            <span>Gender: <strong>{{ patient['gender'] }}</strong></span>
-                        {% endif %}
+                    <div class="emergency-timer-widget" id="timerBox">
+                        <div class="emergency-timer-label">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span>Session Expires in</span>
+                        </div>
+                        <div class="emergency-timer-value" id="countdownTimer">10:00</div>
                     </div>
+                </section>
+
+                <!-- 2. Clinical Advisory Notice -->
+                <div class="emergency-advisory-bar">
+                    <div class="emergency-advisory-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </div>
+                    <span><strong>Clinical Advisory:</strong> Verify critical medical information with the patient or healthcare professionals whenever possible.</span>
                 </div>
 
-                <div style="text-align: right;">
-                    <span style="font-size: 0.8rem; color: var(--text-muted); display: block; text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Blood Group</span>
-                    {% if patient['blood_group'] %}
-                        <span class="badge-blood" style="font-size: 1.35rem; padding: 0.35rem 1rem;">
-                            {{ patient['blood_group'] }}
-                        </span>
-                    {% else %}
-                        <span class="badge-pill">Unknown</span>
-                    {% endif %}
-                </div>
-            </div>
+                <!-- 3. Patient Identity Summary Card -->
+                <section class="patient-summary-card">
+                    <div class="patient-summary-top">
+                        <div class="patient-identity-cluster">
+                            <div class="patient-initial-badge">
+                                {{ patient['full_name'][:1] if patient['full_name'] else 'P' }}
+                            </div>
+                            <div class="patient-title-group">
+                                <h1>{{ patient['full_name'] }}</h1>
+                                <div class="patient-meta-pill-row">
+                                    <span class="patient-id-chip-hero">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                                            <circle cx="9" cy="10" r="2"></circle>
+                                            <line x1="15" y1="8" x2="17" y2="8"></line>
+                                            <line x1="15" y1="12" x2="17" y2="12"></line>
+                                            <line x1="7" y1="16" x2="17" y2="16"></line>
+                                        </svg>
+                                        {{ patient['medi_id'] }}
+                                    </span>
+                                    <span class="patient-verified-indicator">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        Break-Glass Verified
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
 
-            <!-- Critical Medical Essentials Grid (Strictly Critical Tier - No Surgery or Private Notes) -->
-            <div class="dashboard-grid" style="margin-bottom: 2rem;">
-                <!-- Allergies -->
-                <div class="dashboard-card" style="border-top: 3px solid var(--emergency);">
-                    <div class="card-top">
-                        <div class="card-title-bar">
-                            <h2 class="card-title" style="color: var(--emergency);">
+                        <!-- Blood Group Hero Badge -->
+                        <div class="patient-blood-container">
+                            <span class="patient-blood-label">Blood Group</span>
+                            <div class="patient-blood-badge-hero">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                                </svg>
+                                <span>{{ patient['blood_group'] if patient['blood_group'] else 'Unknown' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Patient Summary Details Grid -->
+                    <div class="patient-summary-metrics">
+                        <div class="patient-metric-box">
+                            <span class="patient-metric-label">Medical ID</span>
+                            <span class="patient-metric-value" style="font-family: var(--font-mono); color: var(--primary);">{{ patient['medi_id'] }}</span>
+                        </div>
+                        <div class="patient-metric-box">
+                            <span class="patient-metric-label">Date of Birth</span>
+                            <span class="patient-metric-value">{{ patient['date_of_birth'] if patient['date_of_birth'] else 'Not Recorded' }}</span>
+                        </div>
+                        <div class="patient-metric-box">
+                            <span class="patient-metric-label">Biological Gender</span>
+                            <span class="patient-metric-value">{{ patient['gender'] if patient['gender'] else 'Not Recorded' }}</span>
+                        </div>
+                        <div class="patient-metric-box">
+                            <span class="patient-metric-label">Access Scope</span>
+                            <span class="patient-metric-value" style="color: var(--emergency);">Emergency Tier (Restricted)</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Critical Medical Essentials (2x2 Balanced Responsive Grid) -->
+                <section class="emergency-cards-grid">
+                    <!-- Critical Allergies -->
+                    <div class="emergency-info-card card-allergies">
+                        <div class="emergency-card-header">
+                            <h2 class="emergency-card-title">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
                                     <line x1="12" y1="9" x2="12" y2="13"></line>
@@ -172,145 +209,205 @@
                                 </svg>
                                 Critical Allergies
                             </h2>
-                            <span class="badge-pill" style="background-color: var(--emergency-light); color: var(--emergency); font-weight: 700;">Critical</span>
+                            <span class="emergency-tag tag-critical-red">High Risk</span>
                         </div>
-
-                        <div class="clinical-alert-box">
-                            <strong style="color: var(--emergency); display: block; margin-bottom: 0.25rem;">Known Drug & Food Triggers:</strong>
-                            <p style="font-size: 1rem; color: #4c0519; font-weight: 600;">
-                                {{ medical['allergies'] if medical and medical['allergies'] else 'No allergies recorded' }}
-                            </p>
+                        <div class="emergency-card-body">
+                            <span class="emergency-card-subtitle">Known Drug, Food & Environmental Triggers</span>
+                            {% if medical and medical['allergies'] %}
+                                <div class="medical-highlight-box">
+                                    {{ medical['allergies'] }}
+                                </div>
+                            {% else %}
+                                <div class="empty-data-indicator">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    <span>No allergies recorded</span>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
-                </div>
 
-                <!-- Medical Conditions -->
-                <div class="dashboard-card" style="border-top: 3px solid var(--primary);">
-                    <div class="card-top">
-                        <div class="card-title-bar">
-                            <h2 class="card-title">
+                    <!-- Critical Medical Conditions -->
+                    <div class="emergency-info-card card-conditions">
+                        <div class="emergency-card-header">
+                            <h2 class="emergency-card-title">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                                 </svg>
                                 Critical Medical Conditions
                             </h2>
-                            <span class="badge-pill" style="background-color: var(--primary-light); color: var(--primary); font-weight: 700;">Critical</span>
+                            <span class="emergency-tag tag-critical-blue">Active Diagnoses</span>
                         </div>
-                        <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
-                            {{ medical['medical_conditions'] if medical and medical['medical_conditions'] else 'No chronic conditions recorded' }}
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Current Medications -->
-                <div class="dashboard-card" style="border-top: 3px solid var(--secondary); grid-column: span 2;">
-                    <div class="card-top">
-                        <div class="card-title-bar">
-                            <h2 class="card-title">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7z"></path>
-                                    <path d="M8.5 8.5l7 7"></path>
-                                </svg>
-                                Critical Medications
-                            </h2>
-                            <span class="badge-pill" style="background-color: var(--secondary-light); color: var(--secondary); font-weight: 700;">Critical</span>
-                        </div>
-                        <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main); font-weight: 500;">
-                            {{ medical['current_medications'] if medical and medical['current_medications'] else 'No active prescriptions recorded' }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Emergency Contacts (Direct Call) -->
-            <div class="card-title-bar" style="margin-top: 2rem;">
-                <h2 class="card-title">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                    Emergency Contacts (Next of Kin)
-                </h2>
-                <span class="badge-pill">{{ contacts|length }} Contact(s)</span>
-            </div>
-
-            {% if contacts %}
-                <div class="contacts-grid">
-                    {% for contact in contacts %}
-                        <div class="contact-item-card" style="border-left: 4px solid var(--secondary);">
-                            <div>
-                                <h3 class="contact-name">{{ contact['name'] }}</h3>
-                                <span class="contact-rel-badge">{{ contact['relationship'] or 'Emergency Contact' }}</span>
-                                <div class="contact-phone-row" style="margin-top: 0.5rem;">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                                    </svg>
-                                    <a href="tel:{{ contact['phone'] }}" style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">
-                                        {{ contact['phone'] }}
-                                    </a>
+                        <div class="emergency-card-body">
+                            <span class="emergency-card-subtitle">Chronic & Acute Clinical Diagnoses</span>
+                            {% if medical and medical['medical_conditions'] %}
+                                <div class="medical-highlight-box">
+                                    {{ medical['medical_conditions'] }}
                                 </div>
-                            </div>
+                            {% else %}
+                                <div class="empty-data-indicator">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    <span>No chronic conditions recorded</span>
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <p>No emergency contacts registered for this patient.</p>
-                </div>
-            {% endif %}
+                    </div>
 
-            <!-- Audit & Responder Metadata Box -->
-            <div class="audit-meta-card">
-                <strong style="color: var(--text-main); font-size: 0.95rem;">Emergency Access Authorization Record</strong>
-                <div class="audit-meta-grid">
-                    <div>
-                        <span style="display: block; font-size: 0.775rem; text-transform: uppercase;">Responder Name</span>
-                        <strong style="color: var(--text-main);">{{ access['responder_name'] }}</strong>
+                    <!-- Active Medications -->
+                    <div class="emergency-info-card card-medications">
+                        <div class="emergency-card-header">
+                            <h2 class="emergency-card-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="7" width="18" height="13" rx="2"></rect>
+                                    <path d="M16 3h-8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"></path>
+                                    <line x1="12" y1="11" x2="12" y2="17"></line>
+                                    <line x1="9" y1="14" x2="15" y2="14"></line>
+                                </svg>
+                                Active Medications
+                            </h2>
+                            <span class="emergency-tag tag-critical-teal">Prescriptions</span>
+                        </div>
+                        <div class="emergency-card-body">
+                            <span class="emergency-card-subtitle">Current Prescriptions & Dosages</span>
+                            {% if medical and medical['current_medications'] %}
+                                <div class="medical-highlight-box">
+                                    {{ medical['current_medications'] }}
+                                </div>
+                            {% else %}
+                                <div class="empty-data-indicator">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    <span>No active prescriptions recorded</span>
+                                </div>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div>
-                        <span style="display: block; font-size: 0.775rem; text-transform: uppercase;">Organization</span>
-                        <strong style="color: var(--text-main);">{{ access['organization'] or 'Independent Responder' }}</strong>
-                    </div>
-                    <div>
-                        <span style="display: block; font-size: 0.775rem; text-transform: uppercase;">Reason</span>
-                        <strong style="color: var(--text-main);">{{ access['reason'] }}</strong>
-                    </div>
-                    <div>
-                        <span style="display: block; font-size: 0.775rem; text-transform: uppercase;">Access Time</span>
-                        <strong style="color: var(--text-main);">{{ access['created_at'] }}</strong>
-                    </div>
-                    <div>
-                        <span style="display: block; font-size: 0.775rem; text-transform: uppercase;">Expiry Time</span>
-                        <strong style="color: var(--emergency);">{{ access['expires_at'] }}</strong>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Client-side Timer Script -->
-            <script>
-                (function() {
-                    let remainingSeconds = {{ remaining_seconds or 600 }};
-                    const timerDisplay = document.getElementById('countdownTimer');
+                    <!-- Emergency Contacts (Next of Kin) -->
+                    <div class="emergency-info-card card-contacts">
+                        <div class="emergency-card-header">
+                            <h2 class="emergency-card-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                                Emergency Contacts (Next of Kin)
+                            </h2>
+                            <span class="emergency-tag tag-contact-indigo">{{ contacts|length }} Contact(s)</span>
+                        </div>
+                        <div class="emergency-card-body">
+                            <span class="emergency-card-subtitle">Designated Emergency Contacts & Responders</span>
+                            {% if contacts %}
+                                <div class="emergency-contacts-stack">
+                                    {% for contact in contacts %}
+                                        <div class="emergency-contact-row">
+                                            <div class="contact-row-info">
+                                                <span class="contact-row-name">{{ contact['name'] }}</span>
+                                                <span class="contact-row-rel">{{ contact['relationship'] or 'Emergency Contact' }}</span>
+                                            </div>
+                                            <a href="tel:{{ contact['phone'] }}" class="contact-phone-button">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                                </svg>
+                                                <span>{{ contact['phone'] }}</span>
+                                            </a>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="empty-data-indicator">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    <span>No emergency contacts registered for this patient.</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
 
-                    function updateTimer() {
-                        if (remainingSeconds <= 0) {
-                            timerDisplay.textContent = 'Expired';
-                            window.location.reload();
-                            return;
+                <!-- 5. Emergency Access Authorization & Audit Record -->
+                <section class="emergency-audit-panel">
+                    <div class="emergency-audit-top">
+                        <h3 class="emergency-audit-heading">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            Emergency Access Authorization Record
+                        </h3>
+                        <span class="emergency-audit-badge">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Audit Logged & Immutable
+                        </span>
+                    </div>
+
+                    <div class="emergency-audit-metrics">
+                        <div class="audit-metric-item">
+                            <span class="audit-metric-label">Responder Name</span>
+                            <span class="audit-metric-value">{{ access['responder_name'] }}</span>
+                        </div>
+                        <div class="audit-metric-item">
+                            <span class="audit-metric-label">Organization</span>
+                            <span class="audit-metric-value">{{ access['organization'] or 'Independent Responder' }}</span>
+                        </div>
+                        <div class="audit-metric-item">
+                            <span class="audit-metric-label">Declared Reason</span>
+                            <span class="audit-metric-value">{{ access['reason'] }}</span>
+                        </div>
+                        <div class="audit-metric-item">
+                            <span class="audit-metric-label">Access Timestamp</span>
+                            <span class="audit-metric-value">{{ to_str_timestamp(access['created_at']) or access['created_at'] }}</span>
+                        </div>
+                        <div class="audit-metric-item">
+                            <span class="audit-metric-label">Expiry Timestamp</span>
+                            <span class="audit-metric-value" style="color: var(--emergency);">{{ to_str_timestamp(access['expires_at']) or access['expires_at'] }}</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Client-side Timer Script -->
+                <script>
+                    (function() {
+                        let remainingSeconds = {{ remaining_seconds or 600 }};
+                        const timerDisplay = document.getElementById('countdownTimer');
+
+                        function updateTimer() {
+                            if (remainingSeconds <= 0) {
+                                if (timerDisplay) timerDisplay.textContent = 'Expired';
+                                window.location.reload();
+                                return;
+                            }
+                            const mins = Math.floor(remainingSeconds / 60);
+                            const secs = remainingSeconds % 60;
+                            if (timerDisplay) {
+                                timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                            }
+                            remainingSeconds--;
                         }
-                        const mins = Math.floor(remainingSeconds / 60);
-                        const secs = remainingSeconds % 60;
-                        timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-                        remainingSeconds--;
-                    }
 
-                    updateTimer();
-                    setInterval(updateTimer, 1000);
-                })();
-            </script>
-        {% endif %}
+                        updateTimer();
+                        setInterval(updateTimer, 1000);
+                    })();
+                </script>
+            {% endif %}
+        </div>
     </main>
 
     <footer class="footer">
