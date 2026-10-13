@@ -13,7 +13,7 @@ import re
 import io
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, flash, session, g, send_file, has_request_context
+from flask import Flask, render_template, request, redirect, url_for, flash, session, g, send_file, has_request_context, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 import qrcode
 
@@ -1037,7 +1037,7 @@ def ensure_db_initialized():
     Prevents crashing during module import / cold-start in serverless runtimes.
     Static assets bypass database initialization to ensure CSS/images always serve.
     """
-    if request.path.startswith('/static') or request.path in ('/favicon.ico', '/manifest.json', '/manifest.webmanifest', '/sw.js'):
+    if request.path.startswith('/static') or request.path in ('/favicon.ico', '/manifest.json', '/manifest.webmanifest', '/sw.js', '/robots.txt'):
         return
     global _db_initialized
     if not _db_initialized:
@@ -1091,6 +1091,27 @@ def health():
         "is_production": IS_PRODUCTION,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    """Instructs search crawlers to protect sensitive clinical and administrative pathways."""
+    robots_rules = (
+        "User-agent: *\n"
+        "Disallow: /emergency/\n"
+        "Disallow: /doctor/\n"
+        "Disallow: /admin/\n"
+        "Disallow: /admin\n"
+        "Disallow: /dashboard\n"
+        "Disallow: /medical-profile\n"
+        "Disallow: /emergency-contacts\n"
+        "Disallow: /download-qr\n"
+        "Allow: /\n"
+        "Allow: /faqs\n"
+        "Allow: /login\n"
+        "Allow: /register\n"
+    )
+    return Response(robots_rules, mimetype='text/plain')
 
 
 # ============================================================================

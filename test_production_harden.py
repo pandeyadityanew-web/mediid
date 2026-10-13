@@ -200,6 +200,17 @@ class ProductionHardenTestCase(unittest.TestCase):
 
         self.client.get('/logout')
 
+    def test_05_robots_txt_protects_clinical_routes(self):
+        """Verify robots.txt endpoint exists and disallows indexing of sensitive routes."""
+        res = self.client.get('/robots.txt')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('text/plain', res.content_type)
+        content = res.data.decode('utf-8')
+        self.assertIn('Disallow: /emergency/', content)
+        self.assertIn('Disallow: /admin', content)
+        self.assertIn('Disallow: /doctor/', content)
+        self.assertIn('Disallow: /dashboard', content)
+
 
 if __name__ == '__main__':
     unittest.main()
