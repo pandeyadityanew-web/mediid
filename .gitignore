@@ -21,13 +21,36 @@ env/
 # SQLite database files
 *.db
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
 
 # Generated QR code images (auto-generated at runtime)
 static/generated_qr/*.png
 !static/generated_qr/.gitkeep
+
+# Build & packaging
+build/
+dist/
+*.egg-info/
+
+# Scratch & temporary development files
+*.class
+*.java
+*.swp
+*.bak
+*~
 
 # IDE and OS files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+
