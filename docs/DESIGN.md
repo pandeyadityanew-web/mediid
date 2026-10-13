@@ -188,3 +188,18 @@ First Responder             Flask Server                  Database
   - `backdrop-filter: blur(16px);`
   - `background: rgba(255, 255, 255, 0.95);` (Dark Mode: `rgba(15, 23, 42, 0.92)`)
   - Subtle multi-layered elevation shadow and left-aligned layout preserving background illustration visibility.
+
+### 6.1 Emergency Break-Glass Hospital Dashboard (`.emergency-page-wrapper`)
+- **Max Width:** Centered `1060px` container eliminating horizontal sprawl and empty viewports.
+- **Top Warning Banner (`.emergency-banner-card`):** Pulsing red CSS status indicator (`.pulse-dot`), "Restricted Critical Tier" badge, and countdown timer widget with synchronized auto-refresh.
+- **Patient Identity Summary (`.patient-summary-card`):** High-contrast patient typography, monospace SahayID tag, and high-visibility crimson Hero Blood Group Badge (`.patient-blood-badge-hero`).
+- **2x2 Critical Essentials Grid:** Separate cards for Allergies (Crimson), Chronic Conditions (Cyan), Medications (Teal), and Next-of-Kin Contacts (Indigo) with direct `tel:` dialing.
+- **Audit Panel (`.emergency-audit-panel`):** Full 5-metric immutable access record (responder, agency, reason, access time, expiry time).
+
+### 6.2 Patient Medical Record Clinical Dashboard (`.patient-record-page-wrapper`)
+- **Max Width:** Centered `1150px` hospital information system layout.
+- **Clinical Verification Status Bar (`.clinical-auth-bar`):** Green verification alert confirming doctor credentials and OTP consent state.
+- **Patient Summary Header (`.patient-record-header-card`):** Avatar portrait, prominent patient name, DOB, gender, phone, and prominent right-aligned blood group badge.
+- **Section Overview Heading (`.medical-overview-header`):** Clear "Medical Overview" header with supporting description above the clinical grid.
+- **Balanced 2-Column Responsive Grid:** 6 structured cards with top category borders (Allergies, Chronic Conditions, Medications, Surgeries, Doctor Consultation Directives, and Next-of-Kin Contacts).
+

@@ -68,3 +68,34 @@ Every emergency access event is recorded with:
 - Client IP Address
 
 When the patient logs into their SahayID dashboard, the emergency event is surfaced prominently in their **Access History & Audit Trail**, ensuring total transparency against unauthorized misuse.
+
+---
+
+## 4. Hospital-Grade Break-Glass Interface Architecture
+
+The emergency record display (`/emergency/access/<token>`) is engineered specifically for fast-paced clinical and emergency response situations:
+
+1. **Emergency Warning Banner (`.emergency-banner-card`):**
+   - Live pulsating red indicator (`.pulse-dot`) signaling active emergency session.
+   - Distinct "Restricted Critical Tier" badge clearly noting that detailed surgical notes and private consultation journals are suppressed.
+   - Dedicated timer widget displaying remaining minutes/seconds with automatic page reload upon token expiry.
+
+2. **Clinical Advisory Alert (`.emergency-advisory-bar`):**
+   - High-visibility warning advising responders to cross-verify information with patient or attending healthcare personnel whenever feasible.
+
+3. **Patient Summary Hero Card (`.patient-summary-card`):**
+   - Prominent patient full name and avatar initials.
+   - Monospace SahayID code chip and break-glass verification marker.
+   - High-contrast crimson Hero Blood Group Badge (`.patient-blood-badge-hero`) optimized for sub-second recognition by trauma teams.
+   - 4-column metadata grid presenting Medical ID, DOB, Biological Gender, and Access Scope.
+
+4. **Balanced 2x2 Critical Essentials Grid (`.emergency-cards-grid`):**
+   - **Critical Allergies:** Crimson top accent, alert icon, and high-contrast trigger highlights.
+   - **Critical Conditions:** Medical cyan accent, EKG pulse icon, and active chronic diagnoses.
+   - **Active Medications:** Clinical teal accent, prescription pill icon, and active dosage list.
+   - **Next-of-Kin Contacts:** Indigo accent, direct one-click `tel:` calling buttons.
+   - Graceful empty states (`.empty-data-indicator`) on all cards when fields are unpopulated.
+
+5. **Immutable Access Authorization Panel (`.emergency-audit-panel`):**
+   - Structured 5-point audit card attributing responder name, organization, stated reason, access timestamp, and expiry timestamp.
+
