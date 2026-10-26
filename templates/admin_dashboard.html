@@ -36,6 +36,44 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <style>
+        /* Robust Reject Modal Overlay and Animation */
+        #rejectModal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(7, 21, 39, 0.78);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 1.25rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+        #rejectModal.active {
+            display: flex !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        #rejectModal .role-modal-container {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+            max-width: 520px;
+            width: 100%;
+            padding: 2rem;
+            position: relative;
+            transform: translateY(12px) scale(0.98);
+            transition: transform 0.2s ease;
+        }
+        #rejectModal.active .role-modal-container {
+            transform: translateY(0) scale(1) !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Top Navigation Header -->
@@ -598,6 +636,14 @@
                 });
             });
 
+            // Support URL hash or ?tab= query parameter on load
+            const urlParams = new URLSearchParams(window.location.search);
+            const activeTabParam = urlParams.get('tab') || window.location.hash.replace('#', '');
+            if (activeTabParam) {
+                const targetBtn = document.querySelector(`.admin-tab-button[data-target="${activeTabParam}"], .admin-tab-btn[data-target="${activeTabParam}"]`);
+                if (targetBtn) targetBtn.click();
+            }
+
             // Rejection modal logic
             const rejectModal = document.getElementById('rejectModal');
             const rejectForm = document.getElementById('rejectForm');
@@ -605,22 +651,43 @@
             const rejectDoctorReg = document.getElementById('rejectDoctorReg');
             const closeRejectModalBtn = document.getElementById('closeRejectModalBtn');
             const cancelRejectBtn = document.getElementById('cancelRejectBtn');
+            const rejectionReasonInput = document.getElementById('rejection_reason');
 
             function openRejectModal(docId, docName, docReg) {
+                if (!rejectModal || !rejectForm) return;
                 rejectForm.action = '/admin/doctor/' + docId + '/reject';
-                rejectDoctorName.textContent = 'Dr. ' + docName;
-                rejectDoctorReg.textContent = docReg;
+                if (rejectDoctorName) rejectDoctorName.textContent = 'Dr. ' + (docName || '');
+                if (rejectDoctorReg) rejectDoctorReg.textContent = docReg || '';
+                if (rejectionReasonInput) rejectionReasonInput.value = '';
+
                 rejectModal.style.display = 'flex';
+                void rejectModal.offsetWidth; // Force reflow for CSS transition
+                rejectModal.classList.add('active');
                 rejectModal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+
+                if (rejectionReasonInput) {
+                    setTimeout(() => rejectionReasonInput.focus(), 60);
+                }
             }
 
             function closeRejectModal() {
-                rejectModal.style.display = 'none';
+                if (!rejectModal) return;
+                rejectModal.classList.remove('active');
                 rejectModal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+                setTimeout(() => {
+                    if (!rejectModal.classList.contains('active')) {
+                        rejectModal.style.display = 'none';
+                    }
+                }, 220);
             }
 
+            // Bind triggers safely across both pending and verified tables
             document.querySelectorAll('.reject-btn-trigger').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     const id = btn.getAttribute('data-id');
                     const name = btn.getAttribute('data-name');
                     const reg = btn.getAttribute('data-reg');
@@ -630,11 +697,18 @@
 
             if (closeRejectModalBtn) closeRejectModalBtn.addEventListener('click', closeRejectModal);
             if (cancelRejectBtn) cancelRejectBtn.addEventListener('click', closeRejectModal);
+
             if (rejectModal) {
                 rejectModal.addEventListener('click', (e) => {
                     if (e.target === rejectModal) closeRejectModal();
                 });
             }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && rejectModal && rejectModal.classList.contains('active')) {
+                    closeRejectModal();
+                }
+            });
         });
     </script>
 </body>

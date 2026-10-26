@@ -3149,7 +3149,7 @@ def admin_approve_doctor(doctor_id):
     )
 
     flash(f"Dr. {doctor['full_name']} has been approved and granted verified clinical access.", "success")
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_dashboard', tab='tab-verified'))
 
 
 @app.route('/admin/doctor/<int:doctor_id>/reject', methods=['POST'])
@@ -3203,7 +3203,7 @@ def admin_reject_doctor(doctor_id):
     )
 
     flash(f"Verification application for Dr. {doctor['full_name']} has been rejected.", "info")
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_dashboard', tab='tab-rejected'))
 
 
 @app.route('/admin/logout', methods=['GET', 'POST'])
